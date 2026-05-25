@@ -1,21 +1,18 @@
-# 1. Temel imaj olarak hızlı ve hafif bir Node.js versiyonu (Alpine) kullanıyoruz
-FROM node:20-alpine
+# 1. Kırpılmış Alpine YERİNE, tam uyumlu ve sağlam node:20-slim kullanıyoruz
+FROM node:20-slim
 
-# 2. Konteyner içindeki çalışma klasörümüzü ayarlıyoruz
 WORKDIR /app
 
-# 3. Sadece paket dosyalarını kopyalayıp bağımlılıkları kuruyoruz (Önbelleği verimli kullanmak için)
 COPY package*.json ./
-RUN npm install
 
-# 4. Projedeki tüm kodları (src, server vb.) konteynere kopyalıyoruz
+# 2. Sürüm çakışmalarını yoksayan ve hafızayı koruyan ZIRHLI kurulum komutu
+RUN npm install --legacy-peer-deps --no-audit --no-fund
+
 COPY . .
 
-# 5. Vite (Frontend) projesini derliyoruz (dist klasörünü oluşturur)
-RUN npm install --no-audit --no-fund
+# 3. Vite projesini derliyoruz
+RUN npm run build
 
-# 6. Sistemin dışarıya açılacağı portu belirtiyoruz
 EXPOSE 3000
 
-# 7. Backend sunucusunu ayağa kaldıran ana komut
 CMD ["npx", "tsx", "server/index.ts"]
