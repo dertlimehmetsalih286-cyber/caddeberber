@@ -11,12 +11,13 @@ if not firebase_admin._apps:
         cred = credentials.Certificate("firebase-key.json")
         firebase_admin.initialize_app(cred)
     except Exception as e:
-        pass
+        st.error(f"🔥 ANAHTAR HATASI: {e}") # Gerçek hatayı ekrana basar
 
 try:
     db = firestore.client()
-except:
+except Exception as e:
     db = None
+    st.error(f"🔥 VERİTABANI HATASI: {e}") # Gerçek hatayı ekrana basar
 
 # ==========================================
 # 2. SMS GÖNDERME FONKSİYONU
