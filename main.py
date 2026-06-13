@@ -5,7 +5,7 @@ import datetime
 import os
 
 # ==========================================
-# 1. HATA AVLAYICI FIREBASE BAĞLANTISI
+# 1. ESNEK FIREBASE BAĞLANTISI (Hata Önleyici)
 # ==========================================
 FIREBASE_AKTIF = False
 HATA_DETAYI = ""
@@ -80,4 +80,48 @@ with col1:
         try:
             randevular = db.collection("Randevular").where("tarih", "==", secilen_tarih_str).stream()
             for r in randevular:
-                dolu_saatler.append(r.to_dict().get
+                dolu_saatler.append(r.to_dict().get("saat"))
+        except:
+            pass
+
+    musait_saatler = [saat for saat in tum_saatler if saat not in dolu_saatler]
+
+    if len(musait_saatler) == 0:
+        st.error("🚨 Bu tarih tamamen doludur. Lütfen takvimden başka bir gün seçin.")
+        secilen_saat = None
+    else:
+        secilen_saat = st.selectbox("Müsait Saatler", musait_saatler)
+
+with col2:
+    st.subheader("2. İletişim Bilgileri")
+    ad_soyad = st.text_input("Adınız Soyadınız")
+    telefon = st.text_input("Telefon Numaranız", placeholder="05XX XXX XX XX")
+    
+    st.write("") 
+    st.write("") 
+    randevu_btn = st.button("Randevuyu Onayla", type="primary", use_container_width=True)
+
+# ==========================================
+# 4. KAYIT İŞLEMİ
+# ==========================================
+if randevu_btn:
+    if not FIREBASE_AKTIF:
+        st.error("❌ Veritabanı bağlantısı kapalıyken kayıt yapılamaz.")
+    elif not secilen_saat:
+        st.warning("⚠️ Lütfen geçerli ve müsait bir saat seçin.")
+    elif not ad_soyad or not telefon:
+        st.warning("⚠️ Lütfen ad, soyad ve telefon bilgilerinizi eksiksiz girin.")
+    else:
+        try:
+            yeni_randevu = {
+                "ad_soyad": ad_soyad,
+                "telefon": telefon,
+                "tarih": secilen_tarih_str,
+                "saat": secilen_saat,
+                "kayit_zamani": datetime.datetime.now()
+            }
+            db.collection("Randevular").add(yeni_randevu)
+            sms_gonder(ad_soyad, telefon, secilen_tarih_str, secilen_saat)
+            st.success(f"🎉 Harika! {secilen_tarih_str} tarihi, saat {secilen_saat} aralığına randevunuz başarıyla kaydedildi.")
+        except Exception as e:
+            st.error(f"Kayıt sırasında bir hata oluştu: {e}")
