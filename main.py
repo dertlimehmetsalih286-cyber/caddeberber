@@ -2,35 +2,46 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 import datetime
+import os
 
 # ==========================================
-# 1. FIREBASE BAĞLANTISI
+# 1. ESNEK VE AKILLI FIREBASE BAĞLANTISI
 # ==========================================
+FIREBASE_AKTIF = False
+HATA_MESAJI = ""
+
 if not firebase_admin._apps:
     try:
-        cred = credentials.Certificate("firebase-key.json")
-        firebase_admin.initialize_app(cred)
+        # Kodumuz artık her iki ihtimali de sırayla kontrol ediyor:
+        if os.path.exists("firebase-key.json"):
+            cred = credentials.Certificate("firebase-key.json")
+            firebase_admin.initialize_app(cred)
+            FIREBASE_AKTIF = True
+        elif os.path.exists("firebase-key"):
+            cred = credentials.Certificate("firebase-key")
+            firebase_admin.initialize_app(cred)
+            FIREBASE_AKTIF = True
+        else:
+            HATA_MESAJI = "Klasörde 'firebase-key.json' veya 'firebase-key' adında bir anahtar dosyası bulunamadı!"
     except Exception as e:
-        st.error(f"🔥 ANAHTAR HATASI: {e}") # Gerçek hatayı ekrana basar
+        HATA_MESAJI = f"Anahtar okuma hatası: {e}"
 
 try:
-    db = firestore.client()
+    if FIREBASE_AKTIF:
+        db = firestore.client()
+    else:
+        db = None
 except Exception as e:
     db = None
-    st.error(f"🔥 VERİTABANI HATASI: {e}") # Gerçek hatayı ekrana basar
+    FIREBASE_AKTIF = False
+    HATA_MESAJI = f"Firestore istemci bağlantı hatası: {e}"
 
 # ==========================================
-# 2. SMS GÖNDERME FONKSİYONU
+# 2. SMS GÖNDERME FONKSİYONU (TASLAK)
 # ==========================================
-def sms_gonder(ad_soyad, ogrenci_telefon, tarih, saat):
-    
-    # 📌 SİSTEME KAYDEDECEĞİN KENDİ NUMARAN BURAYA YAZILACAK
-    benim_numaram = "+905510941356" 
-    
-    mesaj = f"YENİ RANDEVU: {ad_soyad} adlı kişi {tarih} saat {saat} için randevu oluşturdu. Kişinin numarası: {ogrenci_telefon}"
-    
-    # İleride SMS firmasından alacağımız API bağlantı kodlarını tam bu satıra ekleyeceğiz.
-    print(f"SMS GÖNDERİLİYOR -> Tel: {benim_numaram} | Mesaj: {mesaj}")
+def sms_gonder(ad_soyad, telefon, tarih, saat):
+    mesaj = f"Sayın {ad_soyad}, {tarih} tarihi saat {saat} için rehberlik randevunuz başarıyla oluşturulmuştur."
+    print(f"SMS GÖNDERİLİYOR -> Tel: {telefon} | Mesaj: {mesaj}")
     return True
 
 # ==========================================
@@ -41,6 +52,10 @@ st.set_page_config(page_title="Randevu Al", page_icon="📅", layout="centered")
 st.title("📅 Rehberlik Randevu Sistemi")
 st.markdown("Aşağıdaki takvimden size uygun tarihi seçerek randevunuzu oluşturabilirsiniz. (En fazla 1 ay sonrası için randevu alınabilir).")
 st.divider()
+
+# Eğer bağlantı başarısızsa en üstte gizli gerçek hatayı görelim:
+if not FIREBASE_AKTIF:
+    st.error(f"🔴 Firebase Bağlantı Kurulamadı! Detaylı Hata: {HATA_MESAJI}")
 
 # Sabit Saat Aralıklarımız
 tum_saatler = [
@@ -54,22 +69,19 @@ max_slot_sayisi = len(tum_saatler)
 
 # --- TAMAMEN DOLU OLAN GÜNLERİ TESPİT ETME ---
 dolu_gunler = []
-if db:
+if FIREBASE_AKTIF and db:
     try:
         randevular_ref = db.collection("Randevular").stream()
         tarih_sayaclari = {}
         
-        # Her tarihte kaç randevu olduğunu sayıyoruz
         for r in randevular_ref:
             veri = r.to_dict()
             t = veri.get("tarih")
             if t:
                 tarih_sayaclari[t] = tarih_sayaclari.get(t, 0) + 1
         
-        # Tüm saatleri dolmuş olan günleri listeye ekliyoruz
         for t, sayi in tarih_sayaclari.items():
             if sayi >= max_slot_sayisi:
-                # Tarihi Türk formatına (GG.AA.YYYY) çevirerek listeye ekleyelim
                 guzel_tarih = datetime.datetime.strptime(t, "%Y-%m-%d").strftime("%d.%m.%Y")
                 dolu_gunler.append(guzel_tarih)
     except Exception as e:
@@ -79,17 +91,16 @@ if db:
 if dolu_gunler:
     dolu_gunler.sort()
     st.error(f"🚨 **Tamamen Dolu Olan Tarihler:** {', '.join(dolu_gunler)} (Bu tarihlerde boş saat kalmamıştır)")
-else:
+elif FIREBASE_AKTIF:
     st.info("📅 Şu an önümüzdeki 30 gün içinde tamamen dolu olan bir gün bulunmuyor. İstediğiniz tarihi seçebilirsiniz.")
 
-st.write("") # Biraz boşluk
+st.write("") 
 
 col1, col2 = st.columns([1.2, 1], gap="large")
 
 with col1:
     st.subheader("1. Tarih ve Saat Seçimi")
     
-    # SADECE 1 AYLIK RANDEVU LİMİTİ
     bugun = datetime.date.today()
     bir_ay_sonra = bugun + datetime.timedelta(days=30)
     
@@ -100,12 +111,15 @@ with col1:
     )
     secilen_tarih_str = secilen_tarih.strftime("%Y-%m-%d")
 
-    # Firebase'den seçilen günün dolu saatlerini çekme
+    # Seçilen günün dolu saatlerini çekme
     gunun_dolu_saatleri = []
-    if db:
-        secili_gun_randevulari = db.collection("Randevular").where("tarih", "==", secilen_tarih_str).stream()
-        for r in secili_gun_randevulari:
-            gunun_dolu_saatleri.append(r.to_dict().get("saat"))
+    if FIREBASE_AKTIF and db:
+        try:
+            secili_gun_randevulari = db.collection("Randevular").where("tarih", "==", secilen_tarih_str).stream()
+            for r in secili_gun_randevulari:
+                gunun_dolu_saatleri.append(r.to_dict().get("saat"))
+        except:
+            pass
 
     # RENKLİ SAAT GÖSTERGESİ (Kırmızı/Yeşil)
     st.markdown("**Seçili Günün Saat Durumu:**")
@@ -113,16 +127,13 @@ with col1:
     
     for saat in tum_saatler:
         if saat in gunun_dolu_saatleri:
-            # Kırmızı (Dolu)
             saat_html += f"<div style='background-color: #fee2e2; color: #991b1b; padding: 8px 12px; border-radius: 6px; border: 1px solid #f87171; font-size: 14px; font-weight: bold;'>🚫 {saat} (Dolu)</div>"
         else:
-            # Yeşil (Müsait)
             saat_html += f"<div style='background-color: #dcfce7; color: #166534; padding: 8px 12px; border-radius: 6px; border: 1px solid #4ade80; font-size: 14px; font-weight: bold;'>✅ {saat}</div>"
     
     saat_html += "</div>"
     st.markdown(saat_html, unsafe_allow_html=True)
 
-    # Dolu saatleri seçenek listesinden çıkarma
     musait_saatler = [saat for saat in tum_saatler if saat not in gunun_dolu_saatleri]
 
     if not musait_saatler:
@@ -138,21 +149,21 @@ with col2:
     
     st.write("") 
     st.write("") 
-    # Buton metni tam istediğin gibi kısaltıldı
     randevu_btn = st.button("Randevuyu Onayla", type="primary", use_container_width=True)
 
 # ==========================================
 # 4. KAYIT İŞLEMİ VE KONTROLLER
 # ==========================================
 if randevu_btn:
-    if not secilen_saat:
+    if not FIREBASE_AKTIF:
+        st.error("❌ Veritabanı bağlantısı kapalıyken randevu onaylanamaz. Lütfen yukarıdaki hatayı düzeltin.")
+    elif not secilen_saat:
         st.warning("⚠️ Lütfen geçerli ve müsait bir saat seçin.")
     elif not ad_soyad or not telefon:
         st.warning("⚠️ Lütfen ad, soyad ve telefon bilgilerinizi eksiksiz girin.")
     else:
         if db:
             try:
-                # Veritabanına Kaydet
                 yeni_randevu = {
                     "ad_soyad": ad_soyad,
                     "telefon": telefon,
@@ -162,7 +173,6 @@ if randevu_btn:
                 }
                 db.collection("Randevular").add(yeni_randevu)
                 
-                # Başarılı olursa SMS fonksiyonunu tetikle
                 sms_gonder(ad_soyad, telefon, secilen_tarih_str, secilen_saat)
                 
                 st.success(f"🎉 Harika! {secilen_tarih_str} tarihi, saat {secilen_saat} aralığına randevunuz başarıyla kaydedildi.")
@@ -170,5 +180,3 @@ if randevu_btn:
                 
             except Exception as e:
                 st.error(f"Kayıt sırasında bir hata oluştu: {e}")
-        else:
-            st.error("Firebase bağlantısı yok. Lütfen ayarlarınızı kontrol edin.")
