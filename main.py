@@ -27,11 +27,11 @@ st.markdown("""
     /* Ana Başlık (Slogan) Tasarımı */
     .ana-baslik {text-align: center; color: #EFEBE9; font-size: 2.8rem; font-weight: 900; letter-spacing: 2px; margin-bottom: 40px; margin-top: 10px;}
     
-    /* Berber Kartları */
+    /* Berber Kartı */
     .berber-kart {border: 1px solid #5D4037; border-radius: 12px; padding: 20px; background-color: #4E342E; margin-bottom: 15px;}
-    .berber-isim {font-size: 1.3rem; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;}
-    .berber-unvan {font-size: 0.9rem; color: #D7CCC8; font-weight: 600; margin-bottom: 15px;}
-    .puan-etiket {float: right; font-size: 0.8rem; background: #3E2723; color: #FFD700; padding: 2px 8px; border-radius: 10px;}
+    .berber-isim {font-size: 1.3rem; font-weight: 700; color: #FFFFFF; margin-bottom: 2px; text-align: center;}
+    .berber-unvan {font-size: 0.9rem; color: #D7CCC8; font-weight: 600; margin-bottom: 15px; text-align: center;}
+    .puan-etiket {font-size: 0.8rem; background: #3E2723; color: #FFD700; padding: 2px 8px; border-radius: 10px;}
     
     /* Buton Tasarımları (Logodaki bronz/bakır rengi) */
     .stButton > button {background-color: #8D6E63 !important; color: white !important; border-radius: 8px; border: none; padding: 10px 20px; font-weight: bold;}
@@ -119,18 +119,19 @@ if st.session_state.sayfa == 'ana_sayfa':
     # Ana Slogan
     st.markdown("<div class='ana-baslik'>DEĞİŞİM KAFADA BAŞLAR</div>", unsafe_allow_html=True)
     
-    st.markdown("### ✂️ Uzman Kadromuz")
+    st.markdown("<h3 style='text-align: center;'>✂️ Uzman Kadromuz</h3>", unsafe_allow_html=True)
     
-    # Berber Kartları
-    col1, col2 = st.columns(2)
+    # Tek Berber Kartını Ortalamak İçin Sütun Mantığı
+    bos1, orta_sutun, bos2 = st.columns([1, 2, 1])
     
-    with col1:
-        st.markdown("<div class='berber-kart'><div class='berber-isim'>👤 Yusuf Kılıç <span class='puan-etiket'>★ 4.9</span></div><div class='berber-unvan'>Saç & Sakal Uzmanı</div></div>", unsafe_allow_html=True)
-        st.button("📅 Randevu Al", key="btn_yusuf", on_click=sayfaya_git, args=('randevu_sayfasi', 'Yusuf Kılıç'), use_container_width=True)
-
-    with col2:
-        st.markdown("<div class='berber-kart'><div class='berber-isim'>👤 Kamil Kılıç <span class='puan-etiket'>★ 4.9</span></div><div class='berber-unvan'>Saç & Sakal Uzmanı</div></div>", unsafe_allow_html=True)
-        st.button("📅 Randevu Al", key="btn_kamil", on_click=sayfaya_git, args=('randevu_sayfasi', 'Kamil Kılıç'), use_container_width=True)
+    with orta_sutun:
+        st.markdown("""
+            <div class='berber-kart'>
+                <div class='berber-isim'>👤 Yusuf Kırçali <span class='puan-etiket'>★ 4.9</span></div>
+                <div class='berber-unvan'>Saç & Sakal Uzmanı</div>
+            </div>
+        """, unsafe_allow_html=True)
+        st.button("📅 Randevu Al", key="btn_yusuf", on_click=sayfaya_git, args=('randevu_sayfasi', 'Yusuf Kırçali'), use_container_width=True)
 
 
 # ==========================================
