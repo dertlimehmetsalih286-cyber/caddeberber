@@ -79,7 +79,7 @@ except:
     FIREBASE_AKTIF = False
 
 # ==========================================
-# 2. MESAJ GÖNDERME İŞLEMİ (SABİT NUMARA İLE)
+# 2. MESAJ GÖNDERME İŞLEMİ
 # ==========================================
 def sms_gonder(musteri_ad_soyad, musteri_telefon, tarih, saat, berber):
     sistem_telefonu = "+905339740664"
@@ -139,6 +139,7 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
     st.markdown(f"<h2>👤 {berber_adi}</h2><p style='color:#BCAAA4; font-size: 16px; margin-top: -15px;'>Berberi</p>", unsafe_allow_html=True)
     st.divider()
     
+    # Sol taraf Takvim ve Saat, Sağ taraf Form
     col_sol, col_sag = st.columns([1, 1.5], gap="large")
     
     with col_sol:
@@ -150,7 +151,21 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
         secilen_tarih = st.date_input("Takvim", min_value=bugun, max_value=bir_ay_sonra, label_visibility="collapsed")
         secilen_tarih_str = secilen_tarih.strftime("%Y-%m-%d")
 
-        tum_saatler = ["10:00 - 11:00", "11:00 - 12:00", "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "17:00 - 18:00"]
+        # İstediğin Saat Aralıkları (08:30 - 19:30 Son Randevu)
+        tum_saatler = [
+            "08:30 - 09:30",
+            "09:30 - 10:30",
+            "10:30 - 11:30",
+            "11:30 - 12:30",
+            "12:30 - 13:30",
+            "13:30 - 14:30",
+            "14:30 - 15:30",
+            "15:30 - 16:30",
+            "16:30 - 17:30",
+            "17:30 - 18:30",
+            "18:30 - 19:30",
+            "19:30 - 20:30"
+        ]
         
         dolu_saatler = []
         if FIREBASE_AKTIF and db:
@@ -173,11 +188,10 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
     with col_sag:
         st.markdown("<div class='form-kutusu'>", unsafe_allow_html=True)
         st.markdown("#### Randevu Bilgileri")
-        st.markdown("<p style='font-size:14px; color:#BCAAA4; margin-bottom:20px;'>Lütfen takvimden bir tarih ve saat seçin.</p>", unsafe_allow_html=True)
         
+        # Sadece Ad Soyad ve Telefon bırakıldı
         ad_soyad = st.text_input("Ad Soyad", placeholder="Örn: Ahmet Yılmaz")
-        telefon = st.text_input("Telefon", placeholder="055555")
-        notlar = st.text_area("Not (isteğe bağlı)", placeholder="Randevu ile ilgili eklemek istedikleriniz...")
+        telefon = st.text_input("Telefon Numarası", placeholder="05XX XXX XX XX")
         
         st.write("")
         randevu_btn = st.button("Randevu Oluştur", type="primary", use_container_width=True)
@@ -196,7 +210,6 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
                     "berber": berber_adi,
                     "ad_soyad": ad_soyad,
                     "telefon": telefon,
-                    "notlar": notlar,
                     "tarih": secilen_tarih_str,
                     "saat": secilen_saat,
                     "kayit_zamani": datetime.datetime.now()
