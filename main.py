@@ -80,11 +80,15 @@ except:
     FIREBASE_AKTIF = False
 
 # ==========================================
-# 2. MESAJ GÖNDERME İŞLEMİ
+# 2. MESAJ GÖNDERME İŞLEMİ (SABİT NUMARA İLE)
 # ==========================================
-def sms_gonder(ad_soyad, telefon, tarih, saat, berber):
-    mesaj = f"Sayın {ad_soyad}, {tarih} tarihi saat {saat} için {berber} ile randevunuz başarıyla oluşturulmuştur. Cadde Erkek Kuaförü."
-    print(f"SMS GÖNDERİLİYOR -> Tel: {telefon} | Mesaj: {mesaj}")
+def sms_gonder(musteri_ad_soyad, musteri_telefon, tarih, saat, berber):
+    # SISTEME KAYITLI PATRON TELEFON NUMARASI
+    sistem_telefonu = "+905339740664"
+    
+    mesaj = f"YENİ RANDEVU: {musteri_ad_soyad}, {tarih} saat {saat} için {berber} ile randevu oluşturdu. Müşteri Tel: {musteri_telefon}"
+    
+    print(f"SMS GÖNDERİLİYOR -> Tel: {sistem_telefonu} | Mesaj: {mesaj}")
     return True
 
 # ==========================================
@@ -114,7 +118,7 @@ if st.session_state.sayfa == 'ana_sayfa':
         try:
             st.image("logo.jpg", use_container_width=True)
         except:
-            st.warning("⚠️ 'logo.jpg' dosyası bulunamadı. Lütfen resmi menüden yükleyin.")
+            pass # Arayüzü bozmamak için uyarıyı gizledik
 
     # Ana Slogan
     st.markdown("<div class='ana-baslik'>DEĞİŞİM KAFADA BAŞLAR</div>", unsafe_allow_html=True)
@@ -143,13 +147,15 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
     st.button("← Geri Dön", on_click=sayfaya_git, args=('ana_sayfa', None))
     st.markdown("</div>", unsafe_allow_html=True)
     
-    st.markdown(f"<h2>👤 {berber_adi}</h2><p style='color:#BCAAA4;'>Seçili Uzman</p>", unsafe_allow_html=True)
+    # Fotoğraftaki gibi berber başlığı
+    st.markdown(f"<h2>👤 {berber_adi}</h2><p style='color:#BCAAA4; font-size: 16px; margin-top: -15px;'>Berberi</p>", unsafe_allow_html=True)
     st.divider()
     
     col_sol, col_sag = st.columns([1, 1.5], gap="large")
     
     with col_sol:
-        st.markdown("#### 📅 Tarih ve Saat Seçin")
+        # Fotoğraftaki takvim başlığı
+        st.markdown("#### 📅 Tarih Seçin")
         
         bugun = datetime.date.today()
         bir_ay_sonra = bugun + datetime.timedelta(days=30)
@@ -172,45 +178,3 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
 
         st.write("")
         if len(musait_saatler) == 0:
-            st.error(f"🚨 {berber_adi} için bu tarih doludur.")
-            secilen_saat = None
-        else:
-            secilen_saat = st.selectbox("Saat Seçin", musait_saatler)
-
-    with col_sag:
-        st.markdown("<div class='form-kutusu'>", unsafe_allow_html=True)
-        st.markdown("#### Randevu Bilgileri")
-        st.markdown("<p style='font-size:14px; color:#BCAAA4; margin-bottom:20px;'>Lütfen bilgilerinizi eksiksiz girin.</p>", unsafe_allow_html=True)
-        
-        ad_soyad = st.text_input("Ad Soyad", placeholder="Örn: Ahmet Yılmaz")
-        telefon = st.text_input("Telefon", placeholder="05XX XXX XX XX")
-        notlar = st.text_area("Not (İsteğe bağlı)", placeholder="Örn: Sadece saç tıraşı olacak...")
-        
-        st.write("")
-        randevu_btn = st.button("Randevuyu Onayla", type="primary", use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    if randevu_btn:
-        if not FIREBASE_AKTIF:
-            st.error("❌ Veritabanı bağlantısı kapalı. Şifre dosyasını kontrol edin.")
-        elif not secilen_saat:
-            st.warning("⚠️ Lütfen geçerli bir saat seçin.")
-        elif not ad_soyad or not telefon:
-            st.warning("⚠️ Lütfen ad, soyad ve telefon bilgilerinizi girin.")
-        else:
-            try:
-                yeni_randevu = {
-                    "berber": berber_adi,
-                    "ad_soyad": ad_soyad,
-                    "telefon": telefon,
-                    "notlar": notlar,
-                    "tarih": secilen_tarih_str,
-                    "saat": secilen_saat,
-                    "kayit_zamani": datetime.datetime.now()
-                }
-                db.collection("Randevular").add(yeni_randevu)
-                sms_gonder(ad_soyad, telefon, secilen_tarih_str, secilen_saat, berber_adi)
-                
-                st.success(f"🎉 Randevunuz {berber_adi} için {secilen_tarih_str} saat {secilen_saat} aralığına başarıyla onaylandı!")
-            except Exception as e:
-                st.error(f"Kayıt sırasında bir hata oluştu: {e}")
