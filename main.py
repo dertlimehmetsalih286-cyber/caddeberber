@@ -25,7 +25,7 @@ st.markdown("""
     .block-container {padding-top: 2rem;}
     
     /* Ana Başlık (Slogan) Tasarımı */
-    .ana-baslik {text-align: center; color: #EFEBE9; font-size: 2.8rem; font-weight: 900; letter-spacing: 2px; margin-bottom: 30px; margin-top: 10px;}
+    .ana-baslik {text-align: center; color: #EFEBE9; font-size: 2.8rem; font-weight: 900; letter-spacing: 2px; margin-bottom: 40px; margin-top: 10px;}
     
     /* Berber Kartı */
     .berber-kart {border: 1px solid #5D4037; border-radius: 12px; padding: 20px; background-color: #4E342E; margin-bottom: 15px;}
@@ -119,17 +119,19 @@ if st.session_state.sayfa == 'ana_sayfa':
     # Ana Slogan
     st.markdown("<div class='ana-baslik'>DEĞİŞİM KAFADA BAŞLAR</div>", unsafe_allow_html=True)
     
+    st.markdown("<h3 style='text-align: center;'>✂️ Uzman Kadromuz</h3>", unsafe_allow_html=True)
+    
     # Tek Berber Kartını Ortalamak İçin Sütun Mantığı
     bos1, orta_sutun, bos2 = st.columns([1, 2, 1])
     
     with orta_sutun:
         st.markdown("""
             <div class='berber-kart'>
-                <div class='berber-isim'>👤 Yusuf Kırçalı <span class='puan-etiket'>★ 4.9</span></div>
+                <div class='berber-isim'>👤 Yusuf Kırçali <span class='puan-etiket'>★ 4.9</span></div>
                 <div class='berber-unvan'>Saç & Sakal Uzmanı</div>
             </div>
         """, unsafe_allow_html=True)
-        st.button("📅 Randevu Al", key="btn_yusuf", on_click=sayfaya_git, args=('randevu_sayfasi', 'Yusuf Kırçalı'), use_container_width=True)
+        st.button("📅 Randevu Al", key="btn_yusuf", on_click=sayfaya_git, args=('randevu_sayfasi', 'Yusuf Kırçali'), use_container_width=True)
 
 
 # ==========================================
