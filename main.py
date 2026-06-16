@@ -189,4 +189,48 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
             except:
                 pass
 
-        musait_saatler =
+        musait_saatler = [saat for saat in tum_saatler if saat not in dolu_saatler]
+
+        st.write("")
+        if len(musait_saatler) == 0:
+            st.error(f"🚨 {berber_adi} için bu tarih tamamen doludur. Lütfen başka bir gün seçin.")
+            secilen_saat = None
+        else:
+            secilen_saat = st.selectbox("Saat Seçin", musait_saatler)
+
+    with col_sag:
+        st.markdown("<div class='form-kutusu'>", unsafe_allow_html=True)
+        st.markdown("#### Randevu Bilgileri")
+        st.markdown("<p style='font-size:14px; color:#BCAAA4; margin-bottom:20px;'>Lütfen takvimden bir tarih ve saat seçin.</p>", unsafe_allow_html=True)
+        
+        ad_soyad = st.text_input("Ad Soyad", placeholder="Örn: Ahmet Yılmaz")
+        telefon = st.text_input("Telefon", placeholder="05XX XXX XX XX")
+        notlar = st.text_area("Not (isteğe bağlı)", placeholder="Randevu ile ilgili eklemek istedikleriniz...")
+        
+        st.write("")
+        randevu_btn = st.button("Randevu Oluştur", type="primary", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    if randevu_btn:
+        if not FIREBASE_AKTIF:
+            st.error("❌ Veritabanı bağlantısı kapalı. Şifre dosyasını kontrol edin.")
+        elif not secilen_saat:
+            st.warning("⚠️ Seçtiğiniz tarih doludur, kayıt yapılamaz. Lütfen müsait bir tarih seçin.")
+        elif not ad_soyad or not telephone:
+            st.warning("⚠️ Lütfen ad, soyad ve telefon bilgilerinizi girin.")
+        else:
+            try:
+                yeni_randevu = {
+                    "berber": berber_adi,
+                    "ad_soyad": ad_soyad,
+                    "telefon": telefon,
+                    "notlar": notlar,
+                    "tarih": secilen_tarih_str,
+                    "saat": secilen_saat,
+                    "kayit_zamani": datetime.datetime.now()
+                }
+                db.collection("Randevular").add(yeni_randevu)
+                sms_gonder(ad_soyad, telefon, secilen_tarih_str, secilen_saat, berber_adi)
+                st.success(f"🎉 Randevunuz {berber_adi} için {secilen_tarih_str} saat {secilen_saat} aralığına başarıyla oluşturuldu!")
+            except Exception as e:
+                st.error(f"Kayıt sırasında bir hata oluştu: {e}")
