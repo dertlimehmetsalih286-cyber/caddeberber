@@ -177,4 +177,8 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
         musait_saatler = [saat for saat in tum_saatler if saat not in dolu_saatler]
 
         st.write("")
-        if len(musait_saatler) == 0:
+        # Satır 180 civarı
+if len(musait_saatler) == 0:
+# Bu satır en solda kalmış, girinti eksik!
+st.error(f"🚨 {berber_adi} için bu tarih doludur.")
+secilen_saat = None
