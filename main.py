@@ -177,8 +177,12 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
         musait_saatler = [saat for saat in tum_saatler if saat not in dolu_saatler]
 
         st.write("")
-        # Satır 180 civarı
+     # Satır 180 civarı
 if len(musait_saatler) == 0:
-# Bu satır en solda kalmış, girinti eksik!
-st.error(f"🚨 {berber_adi} için bu tarih doludur.")
-secilen_saat = None
+    
+    
+    
+    
+    # <--- ÇÖZÜM: Buraya bir 'Tab' tuşu veya 4 boşluk ekle.
+    st.error(f"🚨 {berber_adi} için bu tarih doludur.")
+    secilen_saat = None
