@@ -12,49 +12,26 @@ st.set_page_config(page_title="Cadde Erkek Kuaförü", page_icon="✂️", layou
 st.markdown("""
     <style>
     /* Ana Arka Plan Rengi (Kahverengi) */
-    [data-testid="stAppViewContainer"] {
-        background-color: #3E2723;
-        color: #F5DEB3;
-    }
-    [data-testid="stHeader"] {
-        background-color: transparent;
-    }
-    
-    /* Üst menüleri gizle */
+    [data-testid="stAppViewContainer"] { background-color: #3E2723; color: #F5DEB3; }
+    [data-testid="stHeader"] { background-color: transparent; }
     #MainMenu {visibility: hidden;} header {visibility: hidden;}
     .block-container {padding-top: 2rem;}
     
-    /* Ana Başlık (Slogan) Tasarımı */
     .ana-baslik {text-align: center; color: #EFEBE9; font-size: 2.8rem; font-weight: 900; letter-spacing: 2px; margin-bottom: 30px; margin-top: 10px;}
-    
-    /* Berber Kartı */
     .berber-kart {border: 1px solid #5D4037; border-radius: 12px; padding: 20px; background-color: #4E342E; margin-bottom: 15px;}
     .berber-isim {font-size: 1.3rem; font-weight: 700; color: #FFFFFF; margin-bottom: 2px; text-align: center;}
     .berber-unvan {font-size: 0.9rem; color: #D7CCC8; font-weight: 600; margin-bottom: 15px; text-align: center;}
     .puan-etiket {font-size: 0.8rem; background: #3E2723; color: #FFD700; padding: 2px 8px; border-radius: 10px;}
     
-    /* Buton Tasarımları */
     .stButton > button {background-color: #8D6E63 !important; color: white !important; border-radius: 8px; border: none; padding: 10px 20px; font-weight: bold;}
     .stButton > button:hover {background-color: #6D4C41 !important;}
-    
-    /* Geri Dön Butonu */
     .btn-geri > button {background-color: transparent !important; color: #D7CCC8 !important; border: 1px solid #8D6E63;}
-    
-    /* Randevu Bilgi Kutusu */
     .form-kutusu {background-color: #4E342E; padding: 25px; border-radius: 12px; border: 1px solid #5D4037;}
-    
-    /* Form içindeki metinleri açık renk yap */
     p, h1, h2, h3, h4, h5, h6, label {color: #EFEBE9 !important;}
     
-    /* GİRİŞ KUTULARINI (AD, TELEFON, SAAT) BÜYÜTME İŞLEMİ */
-    div[data-baseweb="input"] > div > input {
-        font-size: 1.2rem !important;
-        padding: 14px !important;
-    }
-    div[data-baseweb="select"] > div {
-        font-size: 1.2rem !important;
-        padding: 8px !important;
-    }
+    /* GİRİŞ KUTULARINI BÜYÜTME */
+    div[data-baseweb="input"] > div > input { font-size: 1.2rem !important; padding: 14px !important; }
+    div[data-baseweb="select"] > div { font-size: 1.2rem !important; padding: 8px !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -84,12 +61,14 @@ else:
 try:
     if FIREBASE_AKTIF:
         db = firestore.client()
+    else:
+        db = None
 except:
     db = None
     FIREBASE_AKTIF = False
 
 # ==========================================
-# 2. MESAJ GÖNDERME İŞLEMİ (SABİT NUMARA İLE)
+# 2. MESAJ GÖNDERME İŞLEMİ
 # ==========================================
 def sms_gonder(musteri_ad_soyad, musteri_telefon, tarih, saat, berber):
     sistem_telefonu = "+905339740664"
@@ -139,7 +118,6 @@ if st.session_state.sayfa == 'ana_sayfa':
 # 5. ARAYÜZ: RANDEVU ALMA SAYFASI
 # ==========================================
 elif st.session_state.sayfa == 'randevu_sayfasi':
-    
     berber_adi = st.session_state.secilen_berber
     
     st.markdown("<div class='btn-geri'>", unsafe_allow_html=True)
@@ -149,7 +127,6 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
     st.markdown(f"<h2>👤 {berber_adi}</h2><p style='color:#BCAAA4; font-size: 16px; margin-top: -15px;'>Berberi</p>", unsafe_allow_html=True)
     st.divider()
     
-    # Sol taraf Takvim ve Saat, Sağ taraf Form
     col_sol, col_sag = st.columns([1, 1.5], gap="large")
     
     with col_sol:
@@ -161,20 +138,10 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
         secilen_tarih = st.date_input("Takvim", min_value=bugun, max_value=bir_ay_sonra, label_visibility="collapsed")
         secilen_tarih_str = secilen_tarih.strftime("%Y-%m-%d")
 
-        # Saat Aralıkları (08:30 - 19:30 Son Randevu Başlangıcı)
         tum_saatler = [
-            "08:30 - 09:30",
-            "09:30 - 10:30",
-            "10:30 - 11:30",
-            "11:30 - 12:30",
-            "12:30 - 13:30",
-            "13:30 - 14:30",
-            "14:30 - 15:30",
-            "15:30 - 16:30",
-            "16:30 - 17:30",
-            "17:30 - 18:30",
-            "18:30 - 19:30",
-            "19:30 - 20:30"
+            "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "11:30 - 12:30",
+            "12:30 - 13:30", "13:30 - 14:30", "14:30 - 15:30", "15:30 - 16:30",
+            "16:30 - 17:30", "17:30 - 18:30", "18:30 - 19:30", "19:30 - 20:30"
         ]
         
         dolu_saatler = []
@@ -186,7 +153,10 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
             except:
                 pass
 
-        musait_saatler = [saat for saat in tum_saatler if saat not in dolu_saatler]
+        musait_saatler = []
+        for saat in tum_saatler:
+            if saat not in dolu_saatler:
+                musait_saatler.append(saat)
 
         st.write("")
         if len(musait_saatler) == 0:
