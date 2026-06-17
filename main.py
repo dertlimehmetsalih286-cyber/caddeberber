@@ -45,6 +45,16 @@ st.markdown("""
     
     /* Form içindeki metinleri açık renk yap */
     p, h1, h2, h3, h4, h5, h6, label {color: #EFEBE9 !important;}
+    
+    /* GİRİŞ KUTULARINI (AD, TELEFON, SAAT) BÜYÜTME İŞLEMİ */
+    div[data-baseweb="input"] > div > input {
+        font-size: 1.2rem !important;
+        padding: 14px !important;
+    }
+    div[data-baseweb="select"] > div {
+        font-size: 1.2rem !important;
+        padding: 8px !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
