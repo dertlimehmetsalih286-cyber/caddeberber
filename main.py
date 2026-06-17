@@ -79,7 +79,7 @@ except:
     FIREBASE_AKTIF = False
 
 # ==========================================
-# 2. MESAJ GÖNDERME İŞLEMİ
+# 2. MESAJ GÖNDERME İŞLEMİ (SABİT NUMARA İLE)
 # ==========================================
 def sms_gonder(musteri_ad_soyad, musteri_telefon, tarih, saat, berber):
     sistem_telefonu = "+905339740664"
@@ -151,7 +151,7 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
         secilen_tarih = st.date_input("Takvim", min_value=bugun, max_value=bir_ay_sonra, label_visibility="collapsed")
         secilen_tarih_str = secilen_tarih.strftime("%Y-%m-%d")
 
-        # İstediğin Saat Aralıkları (08:30 - 19:30 Son Randevu)
+        # Saat Aralıkları (08:30 - 19:30 Son Randevu Başlangıcı)
         tum_saatler = [
             "08:30 - 09:30",
             "09:30 - 10:30",
@@ -189,7 +189,6 @@ elif st.session_state.sayfa == 'randevu_sayfasi':
         st.markdown("<div class='form-kutusu'>", unsafe_allow_html=True)
         st.markdown("#### Randevu Bilgileri")
         
-        # Sadece Ad Soyad ve Telefon bırakıldı
         ad_soyad = st.text_input("Ad Soyad", placeholder="Örn: Ahmet Yılmaz")
         telefon = st.text_input("Telefon Numarası", placeholder="05XX XXX XX XX")
         
