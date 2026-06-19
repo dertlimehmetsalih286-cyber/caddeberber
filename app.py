@@ -4,7 +4,6 @@ import os
 import gspread
 from google.oauth2.service_account import Credentials
 import traceback
-import json
 
 app = Flask(__name__)
 
@@ -13,12 +12,11 @@ app = Flask(__name__)
 # =======================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# 1. BURAYA KOPYALADIĞIN O E-TABLONUN TAM LİNKİNİ YAPIŞTIR:
-TABLO_LINKI = "https://docs.google.com/spreadsheets/d/1C9zWOAzoiYm8rTpuToZoKzy5lsiee3eWrjREpA_hwv4/edit?gid=0#gid=0"
+# Senin verdiğin tablo linki tam olarak buraya eklendi!
+TABLO_LINKI = "https://docs.google.com/spreadsheets/d/1C9zWOAzoiYm8rTpuToZoKzy5lsiee3eWrjREpA_hwv4/edit"
 
-# 2. ŞİFRENİ AŞAĞIDAKİ ÜÇ TIRNAK ARASINA OLDUĞU GİBİ YAPIŞTIR (Boşluk kayma hatası vermez)
-sifre_metni = """
-{
+# Gönderdiğin o kusursuz çalışan şifre dosyası
+firebase_sifre = {
   "type": "service_account",
   "project_id": "berber-21d8c",
   "private_key_id": "92e58e6fa72dba1966cb00d6c7f50daa638eedfc",
@@ -31,15 +29,11 @@ sifre_metni = """
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40berber-21d8c.iam.gserviceaccount.com",
   "universe_domain": "googleapis.com"
 }
-"""
 
 gc = None
 sheet = None
 
 try:
-    # Metin olarak aldığımız şifreyi güvenle sisteme tanıtıyoruz
-    firebase_sifre = json.loads(sifre_metni)
-    
     kapsam = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
@@ -71,6 +65,7 @@ def get_booked_slots():
         if not date_str or not sheet:
             return jsonify([])
 
+        # Tüm Excel'i oku ve sadece istenen tarihteki dolu saatleri ayıkla
         tum_kayitlar = sheet.get_all_records()
         dolu_saatler = []
         
@@ -100,6 +95,7 @@ def book():
 
         kayit_zamani = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
+        # Veriyi anında Excel tablosunun en alt satırına ekler
         yeni_satir = ["Yusuf Kırcalı", ad_soyad, telefon, tarih, saat, kayit_zamani]
         sheet.append_row(yeni_satir)
 
