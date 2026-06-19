@@ -6,35 +6,47 @@ import os
 
 app = Flask(__name__)
 
-# --- GÜVENLİ FIREBASE BAĞLANTISI ---
+# ==========================================
+# GÜVENLİ FIREBASE BAĞLANTISI VE OTOMATİK YOL BULUCU
+# ==========================================
 db = None
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+KEY_PATH = os.path.join(BASE_DIR, "firebase-key.json")
+
 try:
     if not firebase_admin._apps:
-        if os.path.exists("firebase-key.json"):
-            firebase_admin.initialize_app(credentials.Certificate("firebase-key.json"))
-        elif os.path.exists("firebase-key"):
-            firebase_admin.initialize_app(credentials.Certificate("firebase-key"))
+        if os.path.exists(KEY_PATH):
+            firebase_admin.initialize_app(credentials.Certificate(KEY_PATH))
+        else:
+            print(f"KRİTİK HATA: {KEY_PATH} dosyası sunucuda bulunamadı!")
+            
     if firebase_admin._apps:
         db = firestore.client()
 except Exception as e:
-    print(f"Firebase Hatası: {e}")
+    print(f"Firebase Bağlantı Hatası: {e}")
+
+# Saat Şablonu
+TUM_SAATLER = [
+    "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "11:30 - 12:30",
+    "12:30 - 13:30", "13:30 - 14:30", "14:30 - 15:30", "15:30 - 16:30",
+    "16:30 - 17:30", "17:30 - 18:30", "18:30 - 19:30", "19:30 - 20:30"
+]
 
 @app.route('/logo.jpg')
 def logo():
-    return send_from_directory(os.getcwd(), 'logo.jpg')
+    return send_from_directory(BASE_DIR, 'logo.jpg')
 
 @app.route('/')
 def index():
     bugun = datetime.date.today().strftime("%Y-%m-%d")
     return render_template('index.html', bugun=bugun)
 
-# --- SADECE DOLU SAATLERİ GÖNDEREN YENİ ROTA ---
 @app.route('/get-booked-slots')
 def get_booked_slots():
     try:
         date_str = request.args.get('date')
         if not date_str or not db:
-            return jsonify([]) # Hata varsa boş liste dön
+            return jsonify([])
 
         dolu_saatler = []
         randevular = db.collection("Randevular").where("tarih", "==", date_str).where("berber", "==", "Yusuf Kırçalı").stream()
@@ -45,12 +57,11 @@ def get_booked_slots():
     except Exception as e:
         return jsonify([])
 
-# --- KAYIT ROTASI ---
 @app.route('/book', methods=['POST'])
 def book():
     try:
         if not db:
-            return jsonify({"status": "error", "message": "Veritabanı bağlantısı kapalı! Şifre dosyasını kontrol edin."})
+            return jsonify({"status": "error", "message": "Veritabanı bağlantısı kapalı! Lütfen firebase-key.json dosyasının GitHub'da olduğundan emin olun."})
         
         data = request.json
         ad_soyad = data.get('ad_soyad')
