@@ -1,13 +1,13 @@
 import streamlit as st
 from twilio.rest import Client
 import datetime
+import os
 
-# --- SMS AYARLARI (TWILIO) ---
-# Ücretsiz bir Twilio hesabı açarak bu bilgileri alabilirsin.
-TWILIO_ACCOUNT_SID = 'buraya_hesap_sid_gelecek'
-TWILIO_AUTH_TOKEN = 'buraya_auth_token_gelecek'
-TWILIO_PHONE_NUMBER = '+1234567890' # Twilio'nun sana verdiği telefon numarası
-HEDEF_TELEFON = '+905555555555'     # SMS'in gideceği kendi telefon numaran
+# --- SMS AYARLARI (GİZLİ BİLGİLER - RENDER ÜZERİNDEN ÇEKİLECEK) ---
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
+HEDEF_TELEFON = os.environ.get('HEDEF_TELEFON')
 
 def sms_gonder(ad, soyad, tarih, saat):
     """Twilio API kullanarak SMS gönderen fonksiyon"""
@@ -29,7 +29,6 @@ def sms_gonder(ad, soyad, tarih, saat):
 st.title("📅 Randevu Alma Sistemi")
 st.write("Lütfen randevu bilgilerinizi aşağıya giriniz.")
 
-# Form yapısı kullanarak sayfanın gereksiz yenilenmesini önlüyoruz
 with st.form("randevu_formu"):
     st.subheader("Kişisel Bilgiler")
     col1, col2 = st.columns(2)
@@ -41,15 +40,12 @@ with st.form("randevu_formu"):
     st.subheader("Zaman Seçimi")
     col3, col4 = st.columns(2)
     with col3:
-        # Geçmiş bir tarihe randevu alınmasını engellemek için min_value bugüne ayarlandı
         tarih = st.date_input("Randevu Tarihi:", min_value=datetime.date.today())
     with col4:
         saat = st.time_input("Randevu Saati:")
 
-    # Formu onaylama butonu
     submit_buton = st.form_submit_button("Randevu Al")
 
-# Butona tıklandığında çalışacak işlemler
 if submit_buton:
     if ad.strip() == "" or soyad.strip() == "":
         st.warning("⚠️ Lütfen ad ve soyad alanlarını eksiksiz doldurun.")
