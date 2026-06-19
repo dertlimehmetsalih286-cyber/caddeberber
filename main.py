@@ -96,7 +96,6 @@ def sms_gonder(musteri_ad_soyad, musteri_telefon, tarih, saat, berber):
     print(f"SMS GÖNDERİLİYOR -> Tel: {sistem_telefonu} | Mesaj: {mesaj}")
     return True
 
-
 # ==========================================
 # 4. TEK SAYFALIK NET ARAYÜZ (FORM)
 # ==========================================
@@ -119,4 +118,57 @@ secilen_tarih_str = secilen_tarih.strftime("%Y-%m-%d")
 # --- 2. PENCERE: SAAT ---
 tum_saatler = [
     "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "11:30 - 12:30",
-    "12:30 - 13:30
+    "12:30 - 13:30", "13:30 - 14:30", "14:30 - 15:30", "15:30 - 16:30",
+    "16:30 - 17:30", "17:30 - 18:30", "18:30 - 19:30", "19:30 - 20:30"
+]
+
+dolu_saatler = []
+if FIREBASE_AKTIF and db:
+    try:
+        randevular = db.collection("Randevular").where("tarih", "==", secilen_tarih_str).where("berber", "==", berber_adi).stream()
+        for r in randevular:
+            dolu_saatler.append(r.to_dict().get("saat"))
+    except:
+        pass
+
+musait_saatler = [saat for saat in tum_saatler if saat not in dolu_saatler]
+
+st.write("")
+if len(musait_saatler) == 0:
+    st.error("🚨 Bu tarih doludur. Lütfen takvimden başka bir gün seçin.")
+    secilen_saat = None
+else:
+    secilen_saat = st.selectbox("⏰ Saat Seçin", musait_saatler)
+
+st.write("")
+
+# --- 3. PENCERE: AD SOYAD VE TELEFON ---
+ad_soyad = st.text_input("👤 Ad Soyad", placeholder="Örn: Ahmet Yılmaz")
+telefon = st.text_input("📞 Telefon Numarası", placeholder="05XX XXX XX XX")
+
+# Onay Butonu
+randevu_btn = st.button("Randevu Oluştur")
+
+# --- KAYIT İŞLEMİ ---
+if randevu_btn:
+    if not FIREBASE_AKTIF:
+        st.error("❌ Veritabanı bağlantısı kapalı. Şifre dosyasını kontrol edin.")
+    elif not secilen_saat:
+        st.warning("⚠️ Lütfen geçerli bir saat seçin.")
+    elif not ad_soyad or not telefon:
+        st.warning("⚠️ Lütfen ad, soyad ve telefon bilgilerinizi eksiksiz girin.")
+    else:
+        try:
+            yeni_randevu = {
+                "berber": berber_adi,
+                "ad_soyad": ad_soyad,
+                "telefon": telefon,
+                "tarih": secilen_tarih_str,
+                "saat": secilen_saat,
+                "kayit_zamani": datetime.datetime.now()
+            }
+            db.collection("Randevular").add(yeni_randevu)
+            sms_gonder(ad_soyad, telefon, secilen_tarih_str, secilen_saat, berber_adi)
+            st.success(f"🎉 Harika! {secilen_tarih_str} tarihi, saat {secilen_saat} aralığına randevunuz başarıyla oluşturuldu.")
+        except Exception as e:
+            st.error(f"Kayıt sırasında bir hata oluştu: {e}")
