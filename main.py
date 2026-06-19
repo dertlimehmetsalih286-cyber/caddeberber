@@ -4,15 +4,7 @@ from firebase_admin import credentials, firestore
 import datetime
 import os
 import base64
-
-# ==========================================
-# 0. SAYFA AYARLARI
-# ==========================================
 st.set_page_config(page_title="Cadde Erkek Kuaförü", page_icon="✂️", layout="centered")
-
-# ==========================================
-# 1. ARKA PLAN VE TASARIM
-# ==========================================
 def arka_plan_ayarla():
     try:
         with open("logo.jpg", "rb") as image_file:
@@ -46,10 +38,6 @@ def arka_plan_ayarla():
         st.markdown("<style>.stApp { background-color: #3E2723; color: #F5DEB3; } p, label, h1 { color: #F5DEB3 !important; text-align: center;}</style>", unsafe_allow_html=True)
 
 arka_plan_ayarla()
-
-# ==========================================
-# 2. FIREBASE BAĞLANTISI
-# ==========================================
 FIREBASE_AKTIF = False
 if not firebase_admin._apps:
     try:
@@ -66,19 +54,11 @@ try:
     db = firestore.client() if FIREBASE_AKTIF else None
 except:
     db = None
-
-# ==========================================
-# 3. SMS FONKSİYONU
-# ==========================================
 def sms_gonder(musteri_ad_soyad, musteri_telefon, tarih, saat, berber):
     sistem_telefonu = "+905339740664"
     mesaj = f"YENİ RANDEVU: {musteri_ad_soyad}, {tarih} saat {saat} için {berber} ile randevu oluşturdu. Müşteri Tel: {musteri_telefon}"
     print(f"SMS GÖNDERİLİYOR -> Tel: {sistem_telefonu} | Mesaj: {mesaj}")
     return True
-
-# ==========================================
-# 4. ARAYÜZ
-# ==========================================
 st.markdown("<h1>✂️ Yusuf Kırçalı</h1>", unsafe_allow_html=True)
 st.markdown("<p style='font-size: 1.2rem; margin-bottom: 30px;'>Cadde Erkek Kuaförü Randevu Sistemi</p>", unsafe_allow_html=True)
 
