@@ -55,9 +55,7 @@
 
         <div class="form-group">
             <label>⏰ Saat Seçin</label>
-            <select id="saat">
-                <!-- Saatler Javascript ile anında yüklenecek -->
-            </select>
+            <select id="saat"></select>
         </div>
 
         <div class="form-group">
@@ -79,7 +77,6 @@
         const saatSelect = document.getElementById('saat');
         const submitBtn = document.getElementById('submitBtn');
 
-        // BÜTÜN SAATLERİ SABİT OLARAK BURAYA GÖMDÜK
         const TUM_SAATLER = [
             "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "11:30 - 12:30",
             "12:30 - 13:30", "13:30 - 14:30", "14:30 - 15:30", "15:30 - 16:30",
@@ -88,8 +85,6 @@
 
         async function saatleriGuncelle() {
             const secilenTarih = tarihInput.value;
-            
-            // 1. Önce bütün saatleri listeye tertemiz ekle
             saatSelect.innerHTML = '';
             TUM_SAATLER.forEach(saat => {
                 const opt = document.createElement('option');
@@ -98,28 +93,18 @@
                 saatSelect.appendChild(opt);
             });
 
-            // 2. Sunucudan sadece DOLU saatleri sor
             try {
                 const response = await fetch(`/get-booked-slots?date=${secilenTarih}`);
-                const doluSaatler = await response.json();
-                
-                // 3. Eğer saat doluysa onu listeden kaldır (Sil)
-                Array.from(saatSelect.options).forEach(opt => {
-                    if (doluSaatler.includes(opt.value)) {
-                        saatSelect.removeChild(opt);
-                    }
-                });
-
-                // Eğer bütün saatler silindiyse uyarı ver
-                if (saatSelect.options.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.value = "";
-                    opt.innerText = "⚠️ Bu Tarih Tamamen Dolu!";
-                    saatSelect.appendChild(opt);
+                if (response.ok) {
+                    const doluSaatler = await response.json();
+                    Array.from(saatSelect.options).forEach(opt => {
+                        if (doluSaatler.includes(opt.value)) {
+                            saatSelect.removeChild(opt);
+                        }
+                    });
                 }
             } catch (error) {
-                // Sunucu çökse bile sabit saatler ekranda kalır, asla hata yazmaz!
-                console.log("Dolu saatler kontrol edilemedi, varsayılan liste açık kalacak.");
+                console.log("Sunucu dolu saatleri getiremedi.");
             }
         }
 
@@ -132,17 +117,11 @@
             const tarih = tarihInput.value;
             const saat = saatSelect.value;
 
-            if (!saat || saat.includes('⚠️')) {
-                Swal.fire('Uyarı', 'Lütfen geçerli bir saat seçin!', 'warning');
-                return;
-            }
-            if (!ad_soyad || !telefon) {
-                Swal.fire('Uyarı', 'Lütfen ad, soyad ve telefon numarası alanlarını doldurun!', 'warning');
-                return;
-            }
+            if (!saat) { Swal.fire('Uyarı', 'Lütfen geçerli bir saat seçin!', 'warning'); return; }
+            if (!ad_soyad || !telefon) { Swal.fire('Uyarı', 'Lütfen ad, soyad ve telefon doldurun!', 'warning'); return; }
 
             submitBtn.disabled = true;
-            submitBtn.innerText = "Randevu kaydediliyor...";
+            submitBtn.innerText = "Kaydediliyor...";
 
             try {
                 const response = await fetch('/book', {
@@ -150,17 +129,23 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ad_soyad, telefon, tarih, saat })
                 });
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    Swal.fire('Başarılı!', result.message, 'success').then(() => {
-                        window.location.reload();
-                    });
-                } else {
-                    Swal.fire('Hata', result.message, 'error');
+                
+                const rawText = await response.text(); // Sunucudan ne gelirse gelsin oku
+                
+                try {
+                    const result = JSON.parse(rawText); // JSON'a çevirmeye çalış
+                    if (result.status === 'success') {
+                        Swal.fire('Başarılı!', result.message, 'success').then(() => window.location.reload());
+                    } else {
+                        Swal.fire('Hata', result.message, 'error');
+                    }
+                } catch (parseError) {
+                    // Eğer JSON değilse Render çökmüş demektir, gerçek hatayı ekrana bas!
+                    Swal.fire('Sunucu Çöktü!', 'Arka plan şu hatayı verdi: ' + rawText.substring(0, 150), 'error');
                 }
-            } catch (error) {
-                Swal.fire('Hata', 'Bağlantı koptu. Lütfen tekrar deneyin.', 'error');
+
+            } catch (netError) {
+                Swal.fire('Ağ Hatası', 'İnternet bağlantısı koptu.', 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = "Randevu Oluştur";
