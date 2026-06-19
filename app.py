@@ -110,7 +110,7 @@ def book():
         with open(CSV_PATH, mode="a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow([
-                "Yusuf Kırçalı", ad_soyad, telefon, tarih, saat, 
+                "Yusuf Kırcalı", ad_soyad, telefon, tarih, saat, 
                 datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             ])
 
