@@ -1,58 +1,122 @@
 import streamlit as st
-from twilio.rest import Client
+import firebase_admin
+from firebase_admin import credentials, firestore
 import datetime
 import os
+import base64
 
-# --- SMS AYARLARI (GİZLİ BİLGİLER - RENDER ÜZERİNDEN ÇEKİLECEK) ---
-TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
-TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
-TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
-HEDEF_TELEFON = os.environ.get('HEDEF_TELEFON')
+# ==========================================
+# 0. SAYFA AYARLARI
+# ==========================================
+st.set_page_config(page_title="Cadde Erkek Kuaförü", page_icon="✂️", layout="centered")
 
-def sms_gonder(ad, soyad, tarih, saat):
-    """Twilio API kullanarak SMS gönderen fonksiyon"""
+# ==========================================
+# 1. ARKA PLANA LOGO EKLEME VE TASARIM
+# ==========================================
+# Logoyu arka plana koyabilmek için kodu okuyup sisteme gömüyoruz
+def arka_plan_ayarla():
     try:
-        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-        mesaj_metni = f"Bilgilendirme: {ad} {soyad} isimli kişi {tarih} tarihi ve saat {saat} için randevu oluşturdu."
+        with open("logo.jpg", "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode()
+        css = f"""
+        <style>
+        /* Ana Arka Plan (Logo) */
+        .stApp {{
+            background-image: url("data:image/jpeg;base64,{encoded_string}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        /* Yazılar okunsun diye logonun üzerine yarı saydam siyah bir perde çekiyoruz */
+        .stApp::before {{
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(30, 20, 15, 0.85);
+            z-index: -1;
+        }}
         
-        message = client.messages.create(
-            body=mesaj_metni,
-            from_=TWILIO_PHONE_NUMBER,
-            to=HEDEF_TELEFON
-        )
-        return True
+        /* Genel Yazı ve Renk Ayarları */
+        #MainMenu {{visibility: hidden;}} header {{visibility: hidden;}}
+        .block-container {{padding-top: 2rem; max-width: 600px;}}
+        p, label, h1, h2, h3, h4, h5, h6 {{color: #F5DEB3 !important; text-align: center;}}
+        
+        /* Kutuları büyütme */
+        div[data-baseweb="input"] > div > input {{ font-size: 1.2rem !important; padding: 12px !important; text-align: center; }}
+        div[data-baseweb="select"] > div {{ font-size: 1.2rem !important; padding: 8px !important; text-align: center; }}
+        
+        /* Buton Tasarımı */
+        .stButton > button {{background-color: #8D6E63 !important; color: white !important; border-radius: 8px; border: none; padding: 15px 20px; font-size: 1.2rem; font-weight: bold; width: 100%; margin-top: 20px;}}
+        .stButton > button:hover {{background-color: #6D4C41 !important;}}
+        </style>
+        """
+        st.markdown(css, unsafe_allow_html=True)
     except Exception as e:
-        st.error(f"SMS gönderilirken bir hata oluştu: {e}")
-        return False
+        # Eğer logo bulunamazsa düz kahverengi arka plan yapar
+        st.markdown("<style>.stApp { background-color: #3E2723; color: #F5DEB3; } p, label, h1 { color: #F5DEB3 !important; text-align: center;}</style>", unsafe_allow_html=True)
 
-# --- KULLANICI ARAYÜZÜ (STREAMLIT) ---
-st.title("📅 Randevu Alma Sistemi")
-st.write("Lütfen randevu bilgilerinizi aşağıya giriniz.")
+arka_plan_ayarla()
 
-with st.form("randevu_formu"):
-    st.subheader("Kişisel Bilgiler")
-    col1, col2 = st.columns(2)
-    with col1:
-        ad = st.text_input("Ad:")
-    with col2:
-        soyad = st.text_input("Soyad:")
-        
-    st.subheader("Zaman Seçimi")
-    col3, col4 = st.columns(2)
-    with col3:
-        tarih = st.date_input("Randevu Tarihi:", min_value=datetime.date.today())
-    with col4:
-        saat = st.time_input("Randevu Saati:")
+# ==========================================
+# 2. ESNEK VERİTABANI BAĞLANTISI
+# ==========================================
+FIREBASE_AKTIF = False
+HATA_DETAYI = ""
 
-    submit_buton = st.form_submit_button("Randevu Al")
+if not firebase_admin._apps:
+    try:
+        if os.path.exists("firebase-key.json"):
+            cred = credentials.Certificate("firebase-key.json")
+            firebase_admin.initialize_app(cred)
+            FIREBASE_AKTIF = True
+        elif os.path.exists("firebase-key"):
+            cred = credentials.Certificate("firebase-key")
+            firebase_admin.initialize_app(cred)
+            FIREBASE_AKTIF = True
+        else:
+            HATA_DETAYI = "Şifre dosyası bulunamadı."
+    except Exception as e:
+        HATA_DETAYI = f"Okuma hatası: {e}"
+else:
+    FIREBASE_AKTIF = True
 
-if submit_buton:
-    if ad.strip() == "" or soyad.strip() == "":
-        st.warning("⚠️ Lütfen ad ve soyad alanlarını eksiksiz doldurun.")
-    else:
-        with st.spinner("Randevunuz işleniyor ve SMS gönderiliyor..."):
-            basarili_mi = sms_gonder(ad, soyad, tarih, saat)
-            
-            if basarili_mi:
-                st.success(f"✅ Sayın {ad} {soyad}, {tarih} - {saat} için randevunuz başarıyla oluşturuldu!")
-                st.info("Sistem yöneticisine SMS ile bilgilendirme yapıldı.")
+try:
+    if FIREBASE_AKTIF:
+        db = firestore.client()
+except:
+    db = None
+    FIREBASE_AKTIF = False
+
+# ==========================================
+# 3. MESAJ GÖNDERME İŞLEMİ (SABİT NUMARA İLE)
+# ==========================================
+def sms_gonder(musteri_ad_soyad, musteri_telefon, tarih, saat, berber):
+    sistem_telefonu = "+905339740664"
+    mesaj = f"YENİ RANDEVU: {musteri_ad_soyad}, {tarih} saat {saat} için {berber} ile randevu oluşturdu. Müşteri Tel: {musteri_telefon}"
+    print(f"SMS GÖNDERİLİYOR -> Tel: {sistem_telefonu} | Mesaj: {mesaj}")
+    return True
+
+
+# ==========================================
+# 4. TEK SAYFALIK NET ARAYÜZ (FORM)
+# ==========================================
+# Başlık
+st.markdown("<h1>✂️ Yusuf Kırçalı</h1>", unsafe_allow_html=True)
+st.markdown("<p style='font-size: 1.2rem; margin-bottom: 30px;'>Cadde Erkek Kuaförü Randevu Sistemi</p>", unsafe_allow_html=True)
+
+if not FIREBASE_AKTIF:
+    st.error(f"🔴 SİSTEM HATASI: {HATA_DETAYI}. Lütfen şifre dosyasını sisteme yükleyin.")
+
+berber_adi = "Yusuf Kırçalı"
+
+# --- 1. PENCERE: TARİH ---
+bugun = datetime.date.today()
+bir_ay_sonra = bugun + datetime.timedelta(days=30)
+
+secilen_tarih = st.date_input("📅 Tarih Seçin", min_value=bugun, max_value=bir_ay_sonra)
+secilen_tarih_str = secilen_tarih.strftime("%Y-%m-%d")
+
+# --- 2. PENCERE: SAAT ---
+tum_saatler = [
+    "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "11:30 - 12:30",
+    "12:30 - 13:30
