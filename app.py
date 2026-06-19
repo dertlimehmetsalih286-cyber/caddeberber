@@ -87,7 +87,7 @@ def get_booked_slots():
             with open(CSV_PATH, mode="r", newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    if row["tarih"] == date_str and row["berber"] == "Yusuf Kırçalı":
+                    if row["tarih"] == date_str and row["berber"] == "Yusuf Kırcalı":
                         dolu_saatler.append(row["saat"])
 
         return jsonify(dolu_saatler)
