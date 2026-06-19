@@ -4,34 +4,41 @@ from firebase_admin import credentials, firestore
 import datetime
 import os
 import traceback
-import json
 
 app = Flask(__name__)
 
-# --- SİHİRLİ ŞİFRE TAMİRCİSİ VE VERİTABANI BAĞLANTISI ---
+# =======================================================
+# HATA YAPMAYAN OTOMATİK DOSYA BULUCU VE VERİTABANI
+# =======================================================
 db = None
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-KEY_PATH = os.path.join(BASE_DIR, "firebase-key.json")
 
 try:
     if not firebase_admin._apps:
-        if os.path.exists(KEY_PATH):
-            # Dosyayı metin olarak değil, JSON olarak açıp içine müdahale ediyoruz
-            with open(KEY_PATH, "r", encoding="utf-8") as f:
-                sifre_dosyasi = json.load(f)
-            
-            # İŞTE HAYAT KURTARAN KISIM: GitHub'ın bozduğu gizli satır atlama işaretlerini tamir et
-            sifre_dosyasi["private_key"] = sifre_dosyasi["private_key"].replace("\\n", "\n")
-            
-            cred = credentials.Certificate(sifre_dosyasi)
-            firebase_admin.initialize_app(cred)
-        else:
-            print(f"KRİTİK HATA: {KEY_PATH} dosyası bulunamadı!")
-    
-    if firebase_admin._apps:
+        # Klasördeki tüm .json uzantılı dosyaları tara
+        json_dosyalari = [f for f in os.listdir(BASE_DIR) if f.endswith('.json')]
+        basarili_baglanti = False
+        
+        for dosya in json_dosyalari:
+            try:
+                tam_yol = os.path.join(BASE_DIR, dosya)
+                cred = credentials.Certificate(tam_yol)
+                firebase_admin.initialize_app(cred)
+                db = firestore.client()
+                basarili_baglanti = True
+                print(f"BAŞARILI: {dosya} isimli orjinal şifreyle giriş yapıldı!")
+                break  # Doğru dosyayı bulunca döngüyü bitir
+            except Exception as e:
+                continue # Bu dosya şifre değilse diğerine geç
+                
+        if not basarili_baglanti:
+            print("KRİTİK HATA: Çalışan bir Firebase şifre dosyası bulunamadı!")
+    else:
         db = firestore.client()
 except Exception as e:
-    print(f"Firebase Başlatma Hatası: {e}")
+    print(f"Genel Başlatma Hatası: {e}")
+
+# =======================================================
 
 @app.route('/logo.jpg')
 def logo():
@@ -61,7 +68,7 @@ def get_booked_slots():
 def book():
     try:
         if not db:
-            return jsonify({"status": "error", "message": "Veritabanı bağlantısı yok! Şifre dosyası okunamadı."})
+            return jsonify({"status": "error", "message": "Veritabanına bağlanılamadı. Orjinal şifre dosyasının yüklendiğinden emin olun."})
         
         data = request.json
         db.collection("Randevular").add({
@@ -73,7 +80,7 @@ def book():
             "kayit_zamani": datetime.datetime.now()
         })
         
-        print(f"YENİ RANDEVU: {data.get('ad_soyad')}, {data.get('tarih')} saat {data.get('saat')}")
+        print(f"YENİ RANDEVU: {data.get('ad_soyad')} | {data.get('tarih')} | {data.get('saat')}")
         return jsonify({"status": "success", "message": "Randevunuz başarıyla oluşturuldu!"})
     
     except Exception as e:
