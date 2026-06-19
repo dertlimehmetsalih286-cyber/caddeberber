@@ -56,7 +56,7 @@
         <div class="form-group">
             <label>⏰ Saat Seçin</label>
             <select id="saat">
-                <option value="">Saatler yükleniyor...</option>
+                <!-- Saatler Javascript ile anında yüklenecek -->
             </select>
         </div>
 
@@ -79,31 +79,47 @@
         const saatSelect = document.getElementById('saat');
         const submitBtn = document.getElementById('submitBtn');
 
+        // BÜTÜN SAATLERİ SABİT OLARAK BURAYA GÖMDÜK
+        const TUM_SAATLER = [
+            "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "11:30 - 12:30",
+            "12:30 - 13:30", "13:30 - 14:30", "14:30 - 15:30", "15:30 - 16:30",
+            "16:30 - 17:30", "17:30 - 18:30", "18:30 - 19:30", "19:30 - 20:30"
+        ];
+
         async function saatleriGuncelle() {
             const secilenTarih = tarihInput.value;
-            saatSelect.innerHTML = '<option value="">Saatler yükleniyor...</option>';
             
+            // 1. Önce bütün saatleri listeye tertemiz ekle
+            saatSelect.innerHTML = '';
+            TUM_SAATLER.forEach(saat => {
+                const opt = document.createElement('option');
+                opt.value = saat;
+                opt.innerText = saat;
+                saatSelect.appendChild(opt);
+            });
+
+            // 2. Sunucudan sadece DOLU saatleri sor
             try {
-                const response = await fetch(`/get-slots?date=${secilenTarih}`);
-                const saatler = await response.json();
-                saatSelect.innerHTML = '';
+                const response = await fetch(`/get-booked-slots?date=${secilenTarih}`);
+                const doluSaatler = await response.json();
                 
-                if (saatler.length === 0) {
+                // 3. Eğer saat doluysa onu listeden kaldır (Sil)
+                Array.from(saatSelect.options).forEach(opt => {
+                    if (doluSaatler.includes(opt.value)) {
+                        saatSelect.removeChild(opt);
+                    }
+                });
+
+                // Eğer bütün saatler silindiyse uyarı ver
+                if (saatSelect.options.length === 0) {
                     const opt = document.createElement('option');
                     opt.value = "";
-                    opt.innerText = "⚠️ Bu Tarih Dolu!";
+                    opt.innerText = "⚠️ Bu Tarih Tamamen Dolu!";
                     saatSelect.appendChild(opt);
-                } else {
-                    saatler.forEach(saat => {
-                        const opt = document.createElement('option');
-                        opt.value = saat;
-                        opt.innerText = saat;
-                        saatSelect.appendChild(opt);
-                    });
                 }
             } catch (error) {
-                // Eğer anlık yavaşlama olursa bağlantı hatası demek yerine sayfayı yenileteceğiz.
-                saatSelect.innerHTML = '<option value="">Saatler yüklenemedi, sayfayı yenileyin.</option>';
+                // Sunucu çökse bile sabit saatler ekranda kalır, asla hata yazmaz!
+                console.log("Dolu saatler kontrol edilemedi, varsayılan liste açık kalacak.");
             }
         }
 
@@ -116,12 +132,12 @@
             const tarih = tarihInput.value;
             const saat = saatSelect.value;
 
-            if (!saat || saat.includes('yüklenemedi') || saat.includes('Dolu')) {
+            if (!saat || saat.includes('⚠️')) {
                 Swal.fire('Uyarı', 'Lütfen geçerli bir saat seçin!', 'warning');
                 return;
             }
             if (!ad_soyad || !telefon) {
-                Swal.fire('Uyarı', 'Lütfen ad, soyad ve telefon numarası alanlarını eksiksiz doldurun!', 'warning');
+                Swal.fire('Uyarı', 'Lütfen ad, soyad ve telefon numarası alanlarını doldurun!', 'warning');
                 return;
             }
 
@@ -144,7 +160,7 @@
                     Swal.fire('Hata', result.message, 'error');
                 }
             } catch (error) {
-                Swal.fire('Hata', 'Sunucu ile bağlantı kurulamadı. Lütfen tekrar deneyin.', 'error');
+                Swal.fire('Hata', 'Bağlantı koptu. Lütfen tekrar deneyin.', 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = "Randevu Oluştur";
