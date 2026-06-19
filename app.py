@@ -4,6 +4,7 @@ import os
 import gspread
 from google.oauth2.service_account import Credentials
 import traceback
+import json
 
 app = Flask(__name__)
 
@@ -15,18 +16,18 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 1. BURAYA KOPYALADIĞIN O E-TABLONUN TAM LİNKİNİ YAPIŞTIR:
 TABLO_LINKI = "https://docs.google.com/spreadsheets/d/1C9zWOAzoiYm8rTpuToZoKzy5lsiee3eWrjREpA_hwv4/edit?gid=0#gid=0"
 
-# 2. BURAYA O ÇALIŞAN GÖMÜLÜ ŞİFRENİ YAPIŞTIR (Önceki app.py kodunda kullandığın şifrenin aynısı)
-firebase_sifre = {"-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDi5ZH2GUWgnPoY\nY6fhpu4Zzl6hwcRqFOOqItkQtU+JGo35Vm0QaJ2Sstb3VLezBkOdLnH0h2bfdq2N\nnxiw6ejLuYEMXi3vlad3ZBFG9IlL/mKcAxCdr68iZWbVm+C8EVJQ7Aotm+DVEXUV\nVDfHm1SzGVuQ/bRlVwS2zQ/NguXGOJ8kdMaqaGi9y2cNd/MREpt0tm0LQYFTA/rh\nGBTGFwobXn5QmGwOsFjlH4JA23mLQzCv26nqGwBXQyCX3eqw722F4FvQchYeNT2g\nWPNptfwiIE4X78PjtTvmM4S+Qu1ZZy/1FZ3alhDwAhcyFp2kd2j9wobYrWGY6/Sd\nSx7gJZyXAgMBAAECggEABmWIDeYWGAcU54C3u1BxDS0yO2EyrMLvmcMairJx2y2l\nq84+v0p6I46cwz0SLx8RsB0esIQfGrtGMH3rVkfh4wxukbvkYG+M2K+euEXG/et4\nBp0kTmDx926tM+YNgEyeUEW3RVd/QsJ+CIUaGKuz+zCcOKQ0yvHL4jnTV9N4fHQP\nZHFcPddRC97ZYM/rnKSFzk0aEOUhWuthUhhJEM9XWzlMv8Dz68VK6a+eJwxJAjs2\n7xJ3926DnvoBlyAZ9xdsMjHaPSHSgLwGWtxomnFwCTfHdVOTQalto2R5fo7PmO5o\ngrfBZXepVNfrEGoCX2ysCsisqrDtPFqTjF5fhHqdEQKBgQD8SLOBwHHFkteddEs2\noXeN1x0deiYeaRr/XS+9bxrFB+UPnWrAm+CIimR7d0ZYtJE3yeJ0hpa1qxsoJVIS\nZub0ILPAbVbB5UPOEm3NpZVCsgsoYqogJvPCqq6IEecGtNnWdeas6Z9+Vx7vqXOA\neqBGdcvg2ZG2uLcnMZXILP9NYwKBgQDmPSPiGBTUt8wZAuieGMtR8v2+BprTP++Z\nmYWVGIXAexSQ3GYw6xQOWSkelSWb3LSU/GRPAhJOdNcHiDQ8YnLf7QKJPPeTfntJ\n6PvndpXEboA9/x5uFR3LekxjSPFbH2y6Kksiw3r6nLRj1/cjLBQso1qnFQBMbGXP\nZVh3D0zkPQKBgAIAcawt4rk2mQ9exNoCHfi6JDj/px3Gp7gu/Rn7r7KwhVjCXv54\nPifXMUTphV1e0Wgn6ewSxU9btDN1WFldB6gYOlTkiTOwpgEUlFp1XeHRl9USM1dd\n98ErqYba3YJoHPJerR3iHKnb9xrftVLnpi3o8V0vXMCeZpWhBxc3hC8RAoGAMtEx\n11hbWKwMl0SmFScB0V+hk8yfZZsKBkv1SPg1pUtFOcf7ojZwoc4aHk7rEyC+ltey\nSCH76mctgtMUPHO6SSRl1+al+l8DVUfgObFZ0xZUpdpmXAO7JMskixFxfBxOgjSN\nium8fg4SXqsvOAsllMilXJVtEHEoc4M56GVvIj0CgYBQ+2dbTbwwK0XN8Ds9JXN3\nrv7ATw/zrX0PI+Ix3nGfYy1eYCwenKcIlAwhVV4+0oetZc3f+yEpMpRfY7JIl8YA\nRo16XyA2FWR88SBi2xLN5re/RhoOyKIG0KXNCiOY5IiIHpks9rB+1wJ47ICt4+Uo\nzU36ZNDQakz8ulsp8Igbhg==\n-----END PRIVATE KEY-----\n"}
-  # SÜSLÜ PARANTEZ İÇİNDEKİ HER ŞEYİ KENDİ ŞİFRENLE DEĞİŞTİR
-  "type": "service_account",
-  "project_id": "berber-21d8c",
-  # ... (şifrenin devamı) ...
-}
+# 2. ŞİFRENİ AŞAĞIDAKİ ÜÇ TIRNAK ARASINA OLDUĞU GİBİ YAPIŞTIR (Boşluk kayma hatası vermez)
+sifre_metni = """
+-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDcNQc28uh2vkEn\n5cuQ7uim13b4ZcRmiku4uc/GZ01Tz1yoJzqK2UjZfuevQid/4N9BKtxcz6kY8RTO\nlBeljU8YR+T9c/DGt2cREqBoiYPPhkIsIulOb8P8+z9EdPwUMW68tGz5xMOEaqKJ\ncKs+o3XkzGr5+1YmgoKVC6xwqIvSbyYKHeZr2bCTNf5f7pv5OmNdNA8eSWOYxUYT\nyQJjowX/1Vq0FQF6knQpyVDEcnt7F+LeeHcvg33U5+GpbmJsZOWb+cL8dd2fr7Bl\n+AQ9ppR8xmWpzqr++7EUjMdsPz/Vi1bMl86jG/I/37WEEzlThNojmEPbceTUCbRo\nMHhiln8HAgMBAAECggEARrzAGw4vz8kxC/x9BotAcCwB2yxxyVC+n1INJRpVFEml\n5ZxoaWcASGHEUh/JqYIWpYv7qtLIaqsy+GNJL1Sz5kReEm72lxceRDU8Eyitj3H8\n+smiMaCkkDUzby23NlNk07iP0zI6bmSE3uqzD9WZjwx9ht0OoSNGiFNuKuhxtgCG\n2eRn8P1u0vopbwYSjp/xfir3RJwbLtRbB59yk9HpPfvYK2H0MJqM9mwIi9WqKJEF\n8+082qogCy3Z8ucN1JUDGqY73hGSr4CpDpU0vxp51iW4+XO7Z6Aq7rHRB8Gc4nGr\nZcO8aI6fOlbFm+m7KlM8pe0Ej5tYMKnz+rhV2LZdnQKBgQD0AL6Pv63V+EqwmpWk\nJPj2NyQ6OSE3XBhPbt1a5gfPGl6CcoypTaUzS3pLeemYcXvccst58EnVGG25SMdA\nnTEDjzo7exGT/rtHtSxivJIu186sZ+VLfRZVtfe0YwdqJ7M01PiCoTQXzcjUK5FF\nUWVSUz7EPdVkndsQN8hdYyKc3QKBgQDnCMRyDuzAYICYGNtV1Id3i1Au+238f1GH\nCIF4VKOfVA8fnub5J+0R96HQHFR3AS4qJcPgjnRXU7BiT6ctiT9nBK0D8SAVsS8o\n3ZDNcN4aYMwtTIfq+qghVlEHqMyTNJCp7H6BUdoKxTD7hJ7Io4G94CZMdOs1mnh+\nbIKVTabLMwKBgBZ1OxTf/5ACGl3G3J8PCBshWCRDvdrqjxJAkf8bzPwy4SAAixHK\nI7pk6AyqW+W8DDpuFmxSwXjrlq3HFQ/NaAV72VBAM437lCE1e7Baytmk41Da/y/D\ng5q/9NyVgMk0fjoOoBDl5XWLa0CcAfLvWvQI1W4agtmP7enAOKDfzv/BAoGBAL8N\n7QY1eWuNYkplI9zSqEQfnOt9WPMZhp4YVpjfxX+Yz/jiOzeH4PCey92B0AepnjeU\ni2tD4snkl1R1clahzSCwKTO9Tz8hC1LMB1cdI07FBZPgWfXj2u3Wp6Oh36tMKOWc\ngPEIczu83kjg3z4kmMIgfwtzFJ97YnGJ4mL9mBUpAoGAGu9MN/jy48sbM04a1EDe\nPF/kVO4UMRfY+Ciw1hnbwlrgd8KrJG5lLFkjoqp/0iRGGHf67Q3lj2CF1vlheQcU\nMlGIvP83F4Cp2JqYc8pkKxWWK3AdpWeSw7c92c48TaQA4i35xscq/9eZG4YmWXmr\ne4Zcl5GPpc9bKTONuB7N/8c=\n-----END PRIVATE KEY-----\n
+"""
 
 gc = None
 sheet = None
 
 try:
+    # Metin olarak aldığımız şifreyi güvenle sisteme tanıtıyoruz
+    firebase_sifre = json.loads(sifre_metni)
+    
     kapsam = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
@@ -58,7 +59,6 @@ def get_booked_slots():
         if not date_str or not sheet:
             return jsonify([])
 
-        # Tüm Excel'i oku ve sadece istenen tarihteki dolu saatleri ayıkla
         tum_kayitlar = sheet.get_all_records()
         dolu_saatler = []
         
@@ -88,7 +88,6 @@ def book():
 
         kayit_zamani = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Veriyi anında Excel tablosunun en alt satırına ekler
         yeni_satir = ["Yusuf Kırcalı", ad_soyad, telefon, tarih, saat, kayit_zamani]
         sheet.append_row(yeni_satir)
 
