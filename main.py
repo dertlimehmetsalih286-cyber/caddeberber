@@ -96,6 +96,7 @@ def sms_gonder(musteri_ad_soyad, musteri_telefon, tarih, saat, berber):
     print(f"SMS GÖNDERİLİYOR -> Tel: {sistem_telefonu} | Mesaj: {mesaj}")
     return True
 
+
 # ==========================================
 # 4. TEK SAYFALIK NET ARAYÜZ (FORM)
 # ==========================================
