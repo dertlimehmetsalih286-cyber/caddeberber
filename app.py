@@ -4,10 +4,11 @@ from firebase_admin import credentials, firestore
 import datetime
 import os
 import traceback
+import json
 
 app = Flask(__name__)
 
-# --- OTOMATİK ŞİFRE BULUCU VE VERİTABANI BAĞLANTISI ---
+# --- SİHİRLİ ŞİFRE TAMİRCİSİ VE VERİTABANI BAĞLANTISI ---
 db = None
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 KEY_PATH = os.path.join(BASE_DIR, "firebase-key.json")
@@ -15,7 +16,15 @@ KEY_PATH = os.path.join(BASE_DIR, "firebase-key.json")
 try:
     if not firebase_admin._apps:
         if os.path.exists(KEY_PATH):
-            firebase_admin.initialize_app(credentials.Certificate(KEY_PATH))
+            # Dosyayı metin olarak değil, JSON olarak açıp içine müdahale ediyoruz
+            with open(KEY_PATH, "r", encoding="utf-8") as f:
+                sifre_dosyasi = json.load(f)
+            
+            # İŞTE HAYAT KURTARAN KISIM: GitHub'ın bozduğu gizli satır atlama işaretlerini tamir et
+            sifre_dosyasi["private_key"] = sifre_dosyasi["private_key"].replace("\\n", "\n")
+            
+            cred = credentials.Certificate(sifre_dosyasi)
+            firebase_admin.initialize_app(cred)
         else:
             print(f"KRİTİK HATA: {KEY_PATH} dosyası bulunamadı!")
     
@@ -52,7 +61,7 @@ def get_booked_slots():
 def book():
     try:
         if not db:
-            return jsonify({"status": "error", "message": "Veritabanı bağlantısı yok! firebase-key.json dosyasının GitHub'da olduğundan emin ol."})
+            return jsonify({"status": "error", "message": "Veritabanı bağlantısı yok! Şifre dosyası okunamadı."})
         
         data = request.json
         db.collection("Randevular").add({
@@ -69,7 +78,7 @@ def book():
     
     except Exception as e:
         hata_kodu = traceback.format_exc()
-        print(hata_kodu) # Hata olursa Render paneline yazdırsın
+        print(hata_kodu)
         return jsonify({"status": "error", "message": f"Sistem Hatası: {str(e)}"})
 
 if __name__ == '__main__':
