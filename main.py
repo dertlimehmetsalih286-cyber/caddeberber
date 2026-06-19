@@ -1,200 +1,62 @@
 import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, firestore
+from twilio.rest import Client
 import datetime
-import os
 
-# ==========================================
-# 0. SAYFA AYARLARI VE KAHVERENGİ TASARIM
-# ==========================================
-st.set_page_config(page_title="Cadde Erkek Kuaförü", page_icon="✂️", layout="centered")
+# --- SMS AYARLARI (TWILIO) ---
+# Ücretsiz bir Twilio hesabı açarak bu bilgileri alabilirsin.
+TWILIO_ACCOUNT_SID = 'buraya_hesap_sid_gelecek'
+TWILIO_AUTH_TOKEN = 'buraya_auth_token_gelecek'
+TWILIO_PHONE_NUMBER = '+1234567890' # Twilio'nun sana verdiği telefon numarası
+HEDEF_TELEFON = '+905555555555'     # SMS'in gideceği kendi telefon numaran
 
-st.markdown("""
-    <style>
-    /* Ana Arka Plan Rengi (Kahverengi) */
-    [data-testid="stAppViewContainer"] { background-color: #3E2723; color: #F5DEB3; }
-    [data-testid="stHeader"] { background-color: transparent; }
-    #MainMenu {visibility: hidden;} header {visibility: hidden;}
-    .block-container {padding-top: 2rem;}
-    
-    .ana-baslik {text-align: center; color: #EFEBE9; font-size: 2.8rem; font-weight: 900; letter-spacing: 2px; margin-bottom: 30px; margin-top: 10px;}
-    .berber-kart {border: 1px solid #5D4037; border-radius: 12px; padding: 20px; background-color: #4E342E; margin-bottom: 15px;}
-    .berber-isim {font-size: 1.3rem; font-weight: 700; color: #FFFFFF; margin-bottom: 2px; text-align: center;}
-    .berber-unvan {font-size: 0.9rem; color: #D7CCC8; font-weight: 600; margin-bottom: 15px; text-align: center;}
-    .puan-etiket {font-size: 0.8rem; background: #3E2723; color: #FFD700; padding: 2px 8px; border-radius: 10px;}
-    
-    .stButton > button {background-color: #8D6E63 !important; color: white !important; border-radius: 8px; border: none; padding: 10px 20px; font-weight: bold;}
-    .stButton > button:hover {background-color: #6D4C41 !important;}
-    .btn-geri > button {background-color: transparent !important; color: #D7CCC8 !important; border: 1px solid #8D6E63;}
-    .form-kutusu {background-color: #4E342E; padding: 25px; border-radius: 12px; border: 1px solid #5D4037;}
-    p, h1, h2, h3, h4, h5, h6, label {color: #EFEBE9 !important;}
-    
-    /* GİRİŞ KUTULARINI BÜYÜTME */
-    div[data-baseweb="input"] > div > input { font-size: 1.2rem !important; padding: 14px !important; }
-    div[data-baseweb="select"] > div { font-size: 1.2rem !important; padding: 8px !important; }
-    </style>
-""", unsafe_allow_html=True)
-
-# ==========================================
-# 1. ESNEK VERİTABANI BAĞLANTISI
-# ==========================================
-FIREBASE_AKTIF = False
-HATA_DETAYI = ""
-
-if not firebase_admin._apps:
+def sms_gonder(ad, soyad, tarih, saat):
+    """Twilio API kullanarak SMS gönderen fonksiyon"""
     try:
-        if os.path.exists("firebase-key.json"):
-            cred = credentials.Certificate("firebase-key.json")
-            firebase_admin.initialize_app(cred)
-            FIREBASE_AKTIF = True
-        elif os.path.exists("firebase-key"):
-            cred = credentials.Certificate("firebase-key")
-            firebase_admin.initialize_app(cred)
-            FIREBASE_AKTIF = True
-        else:
-            HATA_DETAYI = "Şifre dosyası bulunamadı."
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        mesaj_metni = f"Bilgilendirme: {ad} {soyad} isimli kişi {tarih} tarihi ve saat {saat} için randevu oluşturdu."
+        
+        message = client.messages.create(
+            body=mesaj_metni,
+            from_=TWILIO_PHONE_NUMBER,
+            to=HEDEF_TELEFON
+        )
+        return True
     except Exception as e:
-        HATA_DETAYI = f"Okuma hatası: {e}"
-else:
-    FIREBASE_AKTIF = True
+        st.error(f"SMS gönderilirken bir hata oluştu: {e}")
+        return False
 
-try:
-    if FIREBASE_AKTIF:
-        db = firestore.client()
+# --- KULLANICI ARAYÜZÜ (STREAMLIT) ---
+st.title("📅 Randevu Alma Sistemi")
+st.write("Lütfen randevu bilgilerinizi aşağıya giriniz.")
+
+# Form yapısı kullanarak sayfanın gereksiz yenilenmesini önlüyoruz
+with st.form("randevu_formu"):
+    st.subheader("Kişisel Bilgiler")
+    col1, col2 = st.columns(2)
+    with col1:
+        ad = st.text_input("Ad:")
+    with col2:
+        soyad = st.text_input("Soyad:")
+        
+    st.subheader("Zaman Seçimi")
+    col3, col4 = st.columns(2)
+    with col3:
+        # Geçmiş bir tarihe randevu alınmasını engellemek için min_value bugüne ayarlandı
+        tarih = st.date_input("Randevu Tarihi:", min_value=datetime.date.today())
+    with col4:
+        saat = st.time_input("Randevu Saati:")
+
+    # Formu onaylama butonu
+    submit_buton = st.form_submit_button("Randevu Al")
+
+# Butona tıklandığında çalışacak işlemler
+if submit_buton:
+    if ad.strip() == "" or soyad.strip() == "":
+        st.warning("⚠️ Lütfen ad ve soyad alanlarını eksiksiz doldurun.")
     else:
-        db = None
-except:
-    db = None
-    FIREBASE_AKTIF = False
-
-# ==========================================
-# 2. MESAJ GÖNDERME İŞLEMİ
-# ==========================================
-def sms_gonder(musteri_ad_soyad, musteri_telefon, tarih, saat, berber):
-    sistem_telefonu = "+905339740664"
-    mesaj = f"YENİ RANDEVU: {musteri_ad_soyad}, {tarih} saat {saat} için {berber} ile randevu oluşturdu. Müşteri Tel: {musteri_telefon}"
-    print(f"SMS GÖNDERİLİYOR -> Tel: {sistem_telefonu} | Mesaj: {mesaj}")
-    return True
-
-# ==========================================
-# 3. SAYFA GEÇİŞ MANTIĞI
-# ==========================================
-if 'sayfa' not in st.session_state:
-    st.session_state.sayfa = 'ana_sayfa'
-if 'secilen_berber' not in st.session_state:
-    st.session_state.secilen_berber = None
-
-def sayfaya_git(hedef_sayfa, berber_ismi=None):
-    st.session_state.sayfa = hedef_sayfa
-    st.session_state.secilen_berber = berber_ismi
-
-# ==========================================
-# 4. ARAYÜZ: ANA SAYFA
-# ==========================================
-if st.session_state.sayfa == 'ana_sayfa':
-    if not FIREBASE_AKTIF:
-        st.error(f"🔴 SİSTEM HATASI: {HATA_DETAYI}. Lütfen şifre dosyasını sisteme yükleyin.")
-
-    sol_bosluk, orta_alan, sag_bosluk = st.columns([1, 1.5, 1])
-    with orta_alan:
-        try:
-            st.image("logo.jpg", use_container_width=True)
-        except:
-            pass 
-
-    st.markdown("<div class='ana-baslik'>DEĞİŞİM KAFADA BAŞLAR</div>", unsafe_allow_html=True)
-    
-    bos1, orta_sutun, bos2 = st.columns([1, 2, 1])
-    with orta_sutun:
-        st.markdown("""
-            <div class='berber-kart'>
-                <div class='berber-isim'>👤 Yusuf Kırçalı <span class='puan-etiket'>★ 4.9</span></div>
-                <div class='berber-unvan'>Saç & Sakal Uzmanı</div>
-            </div>
-        """, unsafe_allow_html=True)
-        st.button("📅 Randevu Al", key="btn_yusuf", on_click=sayfaya_git, args=('randevu_sayfasi', 'Yusuf Kırçalı'), use_container_width=True)
-
-# ==========================================
-# 5. ARAYÜZ: RANDEVU ALMA SAYFASI
-# ==========================================
-elif st.session_state.sayfa == 'randevu_sayfasi':
-    berber_adi = st.session_state.secilen_berber
-    
-    st.markdown("<div class='btn-geri'>", unsafe_allow_html=True)
-    st.button("← Geri Dön", on_click=sayfaya_git, args=('ana_sayfa', None))
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    st.markdown(f"<h2>👤 {berber_adi}</h2><p style='color:#BCAAA4; font-size: 16px; margin-top: -15px;'>Berberi</p>", unsafe_allow_html=True)
-    st.divider()
-    
-    col_sol, col_sag = st.columns([1, 1.5], gap="large")
-    
-    with col_sol:
-        st.markdown("#### 📅 Tarih Seçin")
-        
-        bugun = datetime.date.today()
-        bir_ay_sonra = bugun + datetime.timedelta(days=30)
-        
-        secilen_tarih = st.date_input("Takvim", min_value=bugun, max_value=bir_ay_sonra, label_visibility="collapsed")
-        secilen_tarih_str = secilen_tarih.strftime("%Y-%m-%d")
-
-        tum_saatler = [
-            "08:30 - 09:30", "09:30 - 10:30", "10:30 - 11:30", "11:30 - 12:30",
-            "12:30 - 13:30", "13:30 - 14:30", "14:30 - 15:30", "15:30 - 16:30",
-            "16:30 - 17:30", "17:30 - 18:30", "18:30 - 19:30", "19:30 - 20:30"
-        ]
-        
-        dolu_saatler = []
-        if FIREBASE_AKTIF and db:
-            try:
-                randevular = db.collection("Randevular").where("tarih", "==", secilen_tarih_str).where("berber", "==", berber_adi).stream()
-                for r in randevular:
-                    dolu_saatler.append(r.to_dict().get("saat"))
-            except:
-                pass
-
-        musait_saatler = []
-        for saat in tum_saatler:
-            if saat not in dolu_saatler:
-                musait_saatler.append(saat)
-
-        st.write("")
-        if len(musait_saatler) == 0:
-            st.error("🚨 Bu tarih doludur. Lütfen takvimden başka bir gün seçin.")
-            secilen_saat = None
-        else:
-            secilen_saat = st.selectbox("Saat Seçin", musait_saatler)
-
-    with col_sag:
-        st.markdown("<div class='form-kutusu'>", unsafe_allow_html=True)
-        st.markdown("#### Randevu Bilgileri")
-        
-        ad_soyad = st.text_input("Ad Soyad", placeholder="Örn: Ahmet Yılmaz")
-        telefon = st.text_input("Telefon Numarası", placeholder="05XX XXX XX XX")
-        
-        st.write("")
-        randevu_btn = st.button("Randevu Oluştur", type="primary", use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    if randevu_btn:
-        if not FIREBASE_AKTIF:
-            st.error("❌ Veritabanı bağlantısı kapalı. Şifre dosyasını kontrol edin.")
-        elif not secilen_saat:
-            st.warning("⚠️ Lütfen geçerli bir saat seçin.")
-        elif not ad_soyad or not telefon:
-            st.warning("⚠️ Lütfen ad, soyad ve telefon bilgilerinizi eksiksiz girin.")
-        else:
-            try:
-                yeni_randevu = {
-                    "berber": berber_adi,
-                    "ad_soyad": ad_soyad,
-                    "telefon": telefon,
-                    "tarih": secilen_tarih_str,
-                    "saat": secilen_saat,
-                    "kayit_zamani": datetime.datetime.now()
-                }
-                db.collection("Randevular").add(yeni_randevu)
-                sms_gonder(ad_soyad, telefon, secilen_tarih_str, secilen_saat, berber_adi)
-                st.success(f"🎉 Randevunuz {berber_adi} için {secilen_tarih_str} saat {secilen_saat} aralığına başarıyla oluşturuldu!")
-            except Exception as e:
-                st.error(f"Kayıt sırasında bir hata oluştu: {e}")
+        with st.spinner("Randevunuz işleniyor ve SMS gönderiliyor..."):
+            basarili_mi = sms_gonder(ad, soyad, tarih, saat)
+            
+            if basarili_mi:
+                st.success(f"✅ Sayın {ad} {soyad}, {tarih} - {saat} için randevunuz başarıyla oluşturuldu!")
+                st.info("Sistem yöneticisine SMS ile bilgilendirme yapıldı.")
