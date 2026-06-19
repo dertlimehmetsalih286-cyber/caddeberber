@@ -43,7 +43,7 @@ def admin():
         </style>
     </head>
     <body>
-        <h1>📋 Yusuf Kırçalı - Randevu Listesi</h1>
+        <h1>📋 Yusuf Kırcalı - Randevu Listesi</h1>
         <table>
             <tr>
                 <th>Berber</th>
