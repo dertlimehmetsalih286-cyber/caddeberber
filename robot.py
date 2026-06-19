@@ -51,6 +51,33 @@ else:
     for r in yarin_listesi:
         mesaj += f"⏰ {r.get('saat')}\n👤 {r.get('ad_soyad')}\n📞 {r.get('telefon')}\n"
         mesaj += "-------------------\n"
+        name: Gece Randevu Robotu
+
+on:
+  schedule:
+    # UTC saatine göre 21:00, Türkiye saatiyle gece 00:00'a denk gelir.
+    - cron: '0 21 * * *'
+  workflow_dispatch: # İstediğin zaman manuel test edebilmen için buton ekler
+
+jobs:
+  sms-gonder:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Dosyaları Sunucuya Çek
+        uses: actions/checkout@v3
+
+      - name: Python Kurulumu
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Gerekli Paketleri Yükle
+        run: |
+          pip install firebase-admin
+
+      - name: Robotu Çalıştır
+        run: python robot.py
 
 # ==========================================
 # 5. SMS GÖNDERME KOMUTU
