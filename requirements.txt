@@ -1,3 +1,2 @@
 streamlit
 firebase-admin
-pip install streamlit twilio
