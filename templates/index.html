@@ -12,7 +12,6 @@
             background-size: cover; background-position: center; background-attachment: fixed;
             min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px;
         }
-        /* Arka plandaki logonun üzerine şık koyu mat perde çekiyoruz */
         body::before {
             content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(30, 20, 15, 0.85); z-index: 1;
@@ -80,10 +79,9 @@
         const saatSelect = document.getElementById('saat');
         const submitBtn = document.getElementById('submitBtn');
 
-        // Boş saatleri sunucudan dinamik çeken fonksiyon
         async function saatleriGuncelle() {
             const secilenTarih = tarihInput.value;
-            saatSelect.innerHTML = '<option value="">Saatler kontrol ediliyor...</option>';
+            saatSelect.innerHTML = '<option value="">Saatler yükleniyor...</option>';
             
             try {
                 const response = await fetch(`/get-slots?date=${secilenTarih}`);
@@ -104,26 +102,26 @@
                     });
                 }
             } catch (error) {
-                saatSelect.innerHTML = '<option value="">Bağlantı hatası!</option>';
+                // Eğer anlık yavaşlama olursa bağlantı hatası demek yerine sayfayı yenileteceğiz.
+                saatSelect.innerHTML = '<option value="">Saatler yüklenemedi, sayfayı yenileyin.</option>';
             }
         }
 
         tarihInput.addEventListener('change', saatleriGuncelle);
         window.addEventListener('DOMContentLoaded', saatleriGuncelle);
 
-        // Veritabanına Gönderim Tetikleyicisi
         submitBtn.addEventListener('click', async () => {
             const ad_soyad = document.getElementById('ad_soyad').value.trim();
             const telefon = document.getElementById('telefon').value.trim();
             const tarih = tarihInput.value;
             const saat = saatSelect.value;
 
-            if (!saat || saat.includes('⚠️')) {
-                Swal.fire('Uyarı', 'Lütfen müsait bir saat seçin!', 'warning');
+            if (!saat || saat.includes('yüklenemedi') || saat.includes('Dolu')) {
+                Swal.fire('Uyarı', 'Lütfen geçerli bir saat seçin!', 'warning');
                 return;
             }
             if (!ad_soyad || !telefon) {
-                Swal.fire('Uyarı', 'Lütfen ad, soyad ve telefon numarası alanlarını doldurun!', 'warning');
+                Swal.fire('Uyarı', 'Lütfen ad, soyad ve telefon numarası alanlarını eksiksiz doldurun!', 'warning');
                 return;
             }
 
@@ -139,14 +137,14 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    Swal.fire('Başarılı!', 'Randevunuz Yusuf Kırçalı için başarıyla oluşturulmuştur.', 'success').then(() => {
+                    Swal.fire('Başarılı!', result.message, 'success').then(() => {
                         window.location.reload();
                     });
                 } else {
                     Swal.fire('Hata', result.message, 'error');
                 }
             } catch (error) {
-                Swal.fire('Hata', 'Sunucu bağlantısı koptu!', 'error');
+                Swal.fire('Hata', 'Sunucu ile bağlantı kurulamadı. Lütfen tekrar deneyin.', 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = "Randevu Oluştur";
